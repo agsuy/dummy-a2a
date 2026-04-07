@@ -1,0 +1,34 @@
+name: Sync dev after release
+
+# Resets dev to main after the Release workflow completes.
+# Uses reset --hard so squash-merged commits do not accumulate on dev.
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+
+jobs:
+  sync-dev:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: dev
+
+      - name: Configure git
+        run: |
+          git config user.name "agsuy"
+          git config user.email "37564412+agsuy@users.noreply.github.com"
+
+      - name: Reset dev to main
+        run: git reset --hard origin/main
+
+      - name: Push
+        run: git push --force-with-lease origin dev
