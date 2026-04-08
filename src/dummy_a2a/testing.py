@@ -8,6 +8,7 @@ Import these fixtures into your conftest.py::
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import tempfile
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -20,6 +21,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+from dummy_a2a._utils import serve_with_signal
 from dummy_a2a.server import DummyA2AServer
 
 
@@ -46,7 +48,7 @@ def _generate_self_signed_cert(tmpdir: Path) -> tuple[str, str]:
             x509.SubjectAlternativeName(
                 [
                     x509.DNSName("localhost"),
-                    x509.IPAddress(__import__("ipaddress").IPv4Address("127.0.0.1")),
+                    x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
                 ]
             ),
             critical=False,
@@ -99,15 +101,7 @@ class WebhookReceiver:
         app = Starlette(routes=[Route("/webhook", self._handle, methods=["POST"])])
         config = uvicorn.Config(app=app, host=self._host, port=self._port, log_level="warning")
         self._server = uvicorn.Server(config)
-
-        original_startup = self._server.startup
-
-        async def startup_with_signal(*args: object, **kwargs: object) -> None:
-            await original_startup(*args, **kwargs)  # type: ignore[arg-type]
-            self._started.set()
-
-        self._server.startup = startup_with_signal  # type: ignore[assignment]
-        self._serve_task = asyncio.create_task(self._server.serve())
+        self._serve_task = asyncio.create_task(serve_with_signal(self._server, self._started))
         await self._started.wait()
 
     async def stop(self) -> None:
