@@ -85,12 +85,17 @@ class DummyA2AServer:
 
     async def start(self) -> None:
         """Start the server in the background."""
-        # Reset sse-starlette's process-global shutdown flag — it persists
-        # across server instances and would cause SSE streams to abort
-        # immediately if a previous server was stopped in the same process.
+        # Disable sse-starlette's process-global shutdown flag.  It is shared
+        # across all server instances in the same process: when one server
+        # stops, the flag aborts SSE streams on every other server.  We
+        # manage shutdown ourselves via ``uvicorn.Server.should_exit``.
         from sse_starlette.sse import AppStatus
 
         AppStatus.should_exit = False
+        AppStatus.disable_automatic_graceful_drain()
+
+        if self._sdk_log_level is not None:
+            logging.getLogger("a2a").setLevel(self._sdk_log_level)
 
         if self._sdk_log_level is not None:
             logging.getLogger("a2a").setLevel(self._sdk_log_level)

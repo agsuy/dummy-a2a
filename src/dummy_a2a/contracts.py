@@ -487,6 +487,108 @@ async def _(client: httpx.AsyncClient) -> None:
         assert "error" not in del_resp
 
 
+@_contract(
+    "push.get-config",
+    "GetTaskPushNotificationConfig retrieves a stored config",
+    "push-notifications",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    task = await _send(client, "echo test")
+    create_resp = await _rpc_call(
+        client,
+        "CreateTaskPushNotificationConfig",
+        {"taskId": task["id"], "url": "http://example.com/webhook"},
+    )
+    assert "result" in create_resp
+    config_id = create_resp["result"].get("id")
+    if config_id:
+        get_resp = await _rpc_call(
+            client,
+            "GetTaskPushNotificationConfig",
+            {"taskId": task["id"], "id": config_id},
+        )
+        assert "result" in get_resp, f"Expected result, got: {get_resp.get('error')}"
+
+
+@_contract(
+    "push.list-configs",
+    "ListTaskPushNotificationConfigs returns configs for a task",
+    "push-notifications",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    task = await _send(client, "echo test")
+    await _rpc_call(
+        client,
+        "CreateTaskPushNotificationConfig",
+        {"taskId": task["id"], "url": "http://example.com/webhook"},
+    )
+    list_resp = await _rpc_call(
+        client,
+        "ListTaskPushNotificationConfigs",
+        {"taskId": task["id"]},
+    )
+    assert "result" in list_resp, f"Expected result, got: {list_resp.get('error')}"
+
+
+# --- SubscribeToTask ---
+
+
+@_contract(
+    "subscribe.reattach",
+    "SubscribeToTask reattaches to a running task via SSE",
+    "subscribe-to-task",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    # Start a slow task via streaming; keep the original stream open
+    # so the task's event queue stays alive for SubscribeToTask.
+    task_id_event = asyncio.Event()
+    task_id_holder: list[str] = []
+
+    async def _consume_original_stream() -> None:
+        async with client.stream(
+            "POST",
+            "/",
+            json=_rpc("SendStreamingMessage", _msg_params("slow")),
+        ) as resp:
+            async for line in resp.aiter_lines():
+                if line.startswith("data: "):
+                    data = json.loads(line[6:])
+                    result = data.get("result", {})
+                    for key in ("statusUpdate", "artifactUpdate", "task"):
+                        if key in result and "taskId" in result[key]:
+                            if not task_id_holder:
+                                task_id_holder.append(result[key]["taskId"])
+                                task_id_event.set()
+                            break
+
+    producer = asyncio.create_task(_consume_original_stream())
+    try:
+        await asyncio.wait_for(task_id_event.wait(), timeout=5)
+        task_id = task_id_holder[0]
+
+        # Re-attach to the running task via SubscribeToTask
+        events: list[dict] = []
+        async with client.stream(
+            "POST",
+            "/",
+            json=_rpc("SubscribeToTask", {"id": task_id}),
+        ) as resp:
+            assert resp.status_code == 200, f"HTTP {resp.status_code}"
+            async for line in resp.aiter_lines():
+                if line.startswith("data: "):
+                    events.append(json.loads(line[6:]))
+                    # One event is enough to prove reattachment works
+                    break
+
+        assert len(events) >= 1, "Should receive SSE events from subscription"
+    finally:
+        producer.cancel()
+        try:
+            await producer
+        except asyncio.CancelledError:
+            pass
+
+
 # --- Error handling ---
 
 
@@ -663,6 +765,7 @@ async def verify_a2a_compliance(
     *,
     server_factory: ServerFactory | None = None,
     categories: list[str] | None = None,
+    batch_size: int = 20,
 ) -> list[ContractResult]:
     """Run all contracts against a server and return results.
 
@@ -674,7 +777,7 @@ async def verify_a2a_compliance(
             Contracts run sequentially and share server state.
         server_factory: An async context manager factory that yields a base URL
             for an isolated server instance. Each contract gets its own server
-            and contracts run concurrently. Example::
+            and contracts run concurrently in batches. Example::
 
                 from dummy_a2a import DummyA2AServer
 
@@ -687,6 +790,8 @@ async def verify_a2a_compliance(
 
         categories: Optional list of categories to filter
             (e.g. ["agent-card", "send-message"]). If None, runs all contracts.
+        batch_size: Maximum number of contracts to run concurrently when using
+            *server_factory*. Defaults to 20.
 
     Returns:
         List of ContractResult with pass/fail status for each contract.
@@ -704,7 +809,11 @@ async def verify_a2a_compliance(
             async with server_factory() as url:
                 return await contract.verify(url)
 
-        return list(await asyncio.gather(*[_run_isolated(c) for c in contracts]))
+        results: list[ContractResult] = []
+        for i in range(0, len(contracts), batch_size):
+            batch = contracts[i : i + batch_size]
+            results.extend(await asyncio.gather(*[_run_isolated(c) for c in batch]))
+        return results
 
     assert base_url is not None
     results = []
