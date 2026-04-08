@@ -1,6 +1,7 @@
 """Tests for the auth required skill."""
 
 import pytest
+
 from tests.helpers import send
 
 pytestmark = pytest.mark.asyncio

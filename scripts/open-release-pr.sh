@@ -122,6 +122,7 @@ if [[ -n "$existing_pr_url" ]]; then
     echo "existing PR  : $existing_pr_url"
     gh_args=(
         pr edit "$current_branch"
+        --title "$pr_title"
         --body "$pr_body"
     )
     action="update"

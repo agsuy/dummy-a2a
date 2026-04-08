@@ -1,6 +1,7 @@
 """Tests for the echo skill."""
 
 import pytest
+
 from tests.helpers import send
 
 pytestmark = pytest.mark.asyncio
