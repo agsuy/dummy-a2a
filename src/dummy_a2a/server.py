@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Self
 
 import httpx
@@ -35,6 +36,10 @@ class DummyA2AServer:
     Args:
         host: Bind address. Defaults to "127.0.0.1".
         port: Bind port. Use 0 for a random available port.
+        log_level: Logging level for the server (uvicorn) logger
+            (e.g. ``"warning"``, ``"error"``). Defaults to ``"warning"``.
+        sdk_log_level: Logging level for the ``a2a`` SDK logger
+            (e.g. ``"WARNING"``, ``"ERROR"``). Defaults to ``None`` (inherit).
     """
 
     def __init__(
@@ -43,11 +48,15 @@ class DummyA2AServer:
         port: int = 9000,
         ssl_keyfile: str | None = None,
         ssl_certfile: str | None = None,
+        log_level: str = "warning",
+        sdk_log_level: str | int | None = None,
     ) -> None:
         self._host = host
         self._port = port
         self._ssl_keyfile = ssl_keyfile
         self._ssl_certfile = ssl_certfile
+        self._log_level = log_level
+        self._sdk_log_level = sdk_log_level
         self._server: uvicorn.Server | None = None
         self._serve_task: asyncio.Task[None] | None = None
         self._started = asyncio.Event()
@@ -83,6 +92,9 @@ class DummyA2AServer:
 
         AppStatus.should_exit = False
 
+        if self._sdk_log_level is not None:
+            logging.getLogger("a2a").setLevel(self._sdk_log_level)
+
         executor = DummyAgentExecutor()
         executor.register_all_skills()
 
@@ -116,7 +128,7 @@ class DummyA2AServer:
             app=app,
             host=self._host,
             port=self._port,
-            log_level="warning",
+            log_level=self._log_level,
             ssl_keyfile=self._ssl_keyfile,
             ssl_certfile=self._ssl_certfile,
         )
