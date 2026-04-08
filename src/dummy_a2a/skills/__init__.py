@@ -4,22 +4,24 @@ from a2a.server.agent_execution import RequestContext
 from a2a.types import Role, Task, TaskState
 
 from dummy_a2a.skills.base import SkillHandler
-from dummy_a2a.skills.echo import EchoSkill
 
 
 class SkillRouter:
     """Routes user messages to the appropriate skill handler.
 
     Extracts the first word from the user's message as a command keyword
-    and dispatches to the registered handler. Falls back to EchoSkill.
+    and dispatches to the registered handler. Falls back to the first
+    registered handler (or raises if none registered).
     """
 
     def __init__(self) -> None:
         self._handlers: dict[str, SkillHandler] = {}
-        self._fallback: SkillHandler = EchoSkill()
+        self._fallback: SkillHandler | None = None
 
-    def register(self, command: str, handler: SkillHandler) -> None:
+    def register(self, command: str, handler: SkillHandler, *, fallback: bool = False) -> None:
         self._handlers[command.lower()] = handler
+        if fallback or self._fallback is None:
+            self._fallback = handler
 
     def resolve(self, context: RequestContext) -> SkillHandler:
         # For follow-up turns (interrupted tasks), resolve from the original command
@@ -32,7 +34,10 @@ class SkillRouter:
 
         user_input = context.get_user_input().strip()
         command = user_input.split()[0].lower() if user_input else ""
-        return self._handlers.get(command, self._fallback)
+        handler = self._handlers.get(command) or self._fallback
+        if handler is None:
+            raise RuntimeError("No skills registered")
+        return handler
 
     def _resolve_from_history(self, task: Task) -> SkillHandler:
         """Find the original command from the first user message in task history."""
@@ -41,8 +46,12 @@ class SkillRouter:
                 first_part = msg.parts[0]
                 if first_part.WhichOneof("content") == "text":
                     command = first_part.text.strip().split()[0].lower()
-                    return self._handlers.get(command, self._fallback)
+                    handler = self._handlers.get(command) or self._fallback
+                    if handler is not None:
+                        return handler
+        if self._fallback is None:
+            raise RuntimeError("No skills registered")
         return self._fallback
 
 
-__all__ = ["SkillRouter", "SkillHandler", "EchoSkill"]
+__all__ = ["SkillRouter", "SkillHandler"]

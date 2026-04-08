@@ -4,7 +4,7 @@ from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import TaskState, TaskStatus, TaskStatusUpdateEvent
 
-from dummy_a2a.skills import EchoSkill, SkillRouter
+from dummy_a2a.skills import SkillRouter
 
 
 class DummyAgentExecutor(AgentExecutor):
@@ -12,14 +12,13 @@ class DummyAgentExecutor(AgentExecutor):
 
     def __init__(self) -> None:
         self._router = SkillRouter()
-        self._router.register("echo", EchoSkill())
-        # Additional skills registered by _register_all_skills
 
     def register_all_skills(self) -> None:
-        """Register all available skills. Called after imports to avoid circular deps."""
+        """Register all available skills."""
         from dummy_a2a.skills.auth_required import AuthRequiredSkill
         from dummy_a2a.skills.data_response import DataResponseSkill
         from dummy_a2a.skills.debug import DebugSkill
+        from dummy_a2a.skills.echo import EchoSkill
         from dummy_a2a.skills.ext import ExtSkill
         from dummy_a2a.skills.ext_required import ExtRequiredSkill
         from dummy_a2a.skills.fail import FailSkill
@@ -30,6 +29,7 @@ class DummyAgentExecutor(AgentExecutor):
         from dummy_a2a.skills.slow_task import SlowTaskSkill
         from dummy_a2a.skills.stream import StreamSkill
 
+        self._router.register("echo", EchoSkill(), fallback=True)
         self._router.register("stream", StreamSkill())
         self._router.register("ask", MultiTurnSkill())
         self._router.register("slow", SlowTaskSkill())
