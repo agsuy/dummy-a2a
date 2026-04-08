@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-04-08)
+
+### Continuous Integration
+
+- Sync-dev workflow and release trim ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+- **release**: Trim release workflow comments ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+- **sync-dev**: Add workflow_dispatch for manual runs
+  ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+- **sync-dev**: Always reset dev to main after release
+  ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+- **sync-dev**: Skip reset when open dev to main PRs
+  ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+- **sync-dev**: Succeed when skipping sync for dev ahead of main
+  ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+### Features
+
+- Recover dev integration lost to sync (#9-11) plus tooling
+  ([#14](https://github.com/agsuy/dummy-a2a/pull/14),
+  [`3ba499a`](https://github.com/agsuy/dummy-a2a/commit/3ba499a9287b273121f8e7ca972a6656bd6fafbd))
+
+
 ## v0.3.0 (2026-04-08)
 
 ### Continuous Integration
