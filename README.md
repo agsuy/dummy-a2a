@@ -1,9 +1,9 @@
 # dummy-a2a
 
 [![CI](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml/badge.svg)](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/dummy-a2a)](https://pypi.org/project/dummy-a2a/)
-[![Python](https://img.shields.io/pypi/pyversions/dummy-a2a?logo=python&logoColor=ffd43b&label=python)](https://pypi.org/project/dummy-a2a/)
-[![License](https://img.shields.io/pypi/l/dummy-a2a)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/dummy-a2a.svg?logo=pypi&logoColor=white&label=version)](https://pypi.org/project/dummy-a2a/)
+[![Python](https://img.shields.io/pypi/pyversions/dummy-a2a.svg?logo=python&logoColor=ffd43b&label=python)](https://pypi.org/project/dummy-a2a/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
 
 
 A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
