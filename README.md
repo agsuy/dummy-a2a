@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml/badge.svg)](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/dummy-a2a)](https://pypi.org/project/dummy-a2a/)
-[![Python versions](https://img.shields.io/pypi/pyversions/dummy-a2a)](https://pypi.org/project/dummy-a2a/)
+[![Python](https://img.shields.io/pypi/pyversions/dummy-a2a?logo=python&logoColor=ffd43b&label=python)](https://pypi.org/project/dummy-a2a/)
 [![License](https://img.shields.io/pypi/l/dummy-a2a)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
 
 
