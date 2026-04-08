@@ -2,16 +2,6 @@ name: Release
 
 # Bumps version, updates CHANGELOG.md, tags v*, creates GitHub Release, and uploads wheels.
 # Release commits include [skip ci] so this workflow does not loop.
-#
-# Concurrency: only one Release run per branch at a time. With cancel-in-progress: false, a new
-# push to main while a release is still running is queued (Actions UI shows "Pending") until the
-# previous run finishes — that can look like a slow trigger. Merge to main again after the prior
-# Release completes, or run workflow_dispatch below once the queue is clear.
-#
-# GitHub can also take a short time to assign a runner; that is outside this workflow.
-#
-# Manual "Run workflow": GitHub only shows it when THIS FILE (including workflow_dispatch) is on
-# the default branch — merge dev → main (or cherry-pick this file) before expecting the button.
 
 on:
   push:
