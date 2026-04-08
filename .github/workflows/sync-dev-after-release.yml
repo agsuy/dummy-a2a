@@ -4,16 +4,18 @@ name: Sync dev after release
 # This works with squash merges to main (dev is not a history ancestor of main after squash).
 # Tradeoff: any commits that exist only on dev and were never merged to main are dropped from dev.
 # If an open PR targets main from dev, we skip the reset so the PR stays valid until it merges or closes.
+# workflow_dispatch: run manually from the Actions tab (same steps and PR guard as after Release).
 
 on:
   workflow_run:
     workflows: ["Release"]
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   sync-dev:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
