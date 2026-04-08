@@ -18,6 +18,7 @@ from a2a.server.tasks import (
 )
 from a2a.types import AgentCard
 
+from dummy_a2a._utils import serve_with_signal
 from dummy_a2a.agent_card import build_agent_card, build_extended_agent_card
 from dummy_a2a.executor import DummyAgentExecutor
 
@@ -121,20 +122,8 @@ class DummyA2AServer:
         )
         self._server = uvicorn.Server(config)
 
-        self._serve_task = asyncio.create_task(self._run_server())
+        self._serve_task = asyncio.create_task(serve_with_signal(self._server, self._started))
         await self._started.wait()
-
-    async def _run_server(self) -> None:
-        assert self._server is not None
-        # Patch startup to signal readiness
-        original_startup = self._server.startup
-
-        async def startup_with_signal(*args: object, **kwargs: object) -> None:
-            await original_startup(*args, **kwargs)  # type: ignore[arg-type]
-            self._started.set()
-
-        self._server.startup = startup_with_signal  # type: ignore[assignment]
-        await self._server.serve()
 
     async def stop(self) -> None:
         """Stop the server gracefully."""
