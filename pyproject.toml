@@ -18,8 +18,9 @@ classifiers = [
 ]
 dependencies = [
     "a2a-sdk[http-server,sqlite]==1.0.0a0",
-    "uvicorn>=0.34",
     "httpx>=0.28",
+    "packaging>=23.2",
+    "uvicorn>=0.34",
 ]
 authors = [
     { name = "agsuy", email = "37564412+agsuy@users.noreply.github.com" },
