@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dummy-a2a"
-version = "0.1.0"
+version = "0.1.1"
 description = "A dummy a2a agent for testing."
 readme = "README.md"
 requires-python = ">=3.12"
