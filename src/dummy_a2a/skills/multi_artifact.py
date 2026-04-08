@@ -13,6 +13,7 @@ from a2a.types import (
     TaskStatusUpdateEvent,
 )
 from a2a.utils import new_text_artifact
+from google.protobuf import struct_pb2
 
 CHUNK_DELAY = 0.05
 
@@ -57,8 +58,6 @@ class MultiArtifactSkill:
             await asyncio.sleep(CHUNK_DELAY)
 
         # Artifact 3: structured data
-        from google.protobuf import struct_pb2
-
         data_value = struct_pb2.Value()
         data_value.struct_value.fields["artifact"].string_value = "third"
         data_value.struct_value.fields["number"].number_value = 3
