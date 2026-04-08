@@ -1,6 +1,7 @@
 """Tests for the data response skill."""
 
 import pytest
+
 from tests.helpers import send
 
 pytestmark = pytest.mark.asyncio

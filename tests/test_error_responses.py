@@ -1,6 +1,7 @@
 """Tests for A2A error responses."""
 
 import pytest
+
 from tests.helpers import rpc_call
 
 pytestmark = pytest.mark.asyncio

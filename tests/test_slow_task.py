@@ -3,6 +3,7 @@
 import json
 
 import pytest
+
 from tests.helpers import rpc_call, rpc_request, send_message_params
 
 pytestmark = pytest.mark.asyncio

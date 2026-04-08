@@ -4,6 +4,7 @@ import json
 
 import httpx
 import pytest
+
 from tests.helpers import rpc_request, send, send_message_params
 
 pytestmark = pytest.mark.asyncio
