@@ -112,6 +112,12 @@ if [[ "$pr_title" == *"<"* ]]; then
     exit 1
 fi
 
+if ! python3 "$repo_root/scripts/validate_commit_msg.py" --message "$pr_title"; then
+    echo "" >&2
+    echo "error: PR title must match scripts/validate_commit_msg.py (same check as .github/workflows/pr-title.yml)." >&2
+    exit 1
+fi
+
 echo "source branch : $current_branch"
 echo "commit count  : $commit_count"
 echo "PR title      : $pr_title"

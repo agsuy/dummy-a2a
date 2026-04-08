@@ -14,7 +14,7 @@ Use it to **test your A2A client**, **validate spec compliance**, **test extensi
 
 The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
 
-Codebase is intentionally small (~2100 LOC) and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When and if spec changes, the blast radius is typically one skill or one contract and easy to update.
+Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When and if spec changes, the blast radius is typically one skill or one contract and easy to update.
 
 ### What you can validate
 
@@ -327,7 +327,7 @@ for r in results:
 
 ## Contract Testing
 
-38 portable contracts that verify A2A spec compliance against **any** server.
+41 portable contracts that verify A2A spec compliance against **any** server.
 
 The dummy server is the reference implementation -- contracts are dogfooded against it in CI. Run them against your server to validate compliance.
 
@@ -389,10 +389,10 @@ results = await verify_a2a_compliance(
 )
 ```
 
-Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `list-tasks` `cancel-task` `streaming` `content-types` `push-notifications` `errors` `extensions`
+Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `list-tasks` `cancel-task` `streaming` `subscribe-to-task` `content-types` `push-notifications` `errors` `extensions`
 
 <details>
-<summary><strong>All 38 contracts</strong></summary>
+<summary><strong>All 41 contracts</strong></summary>
 
 | ID | Category | What it checks |
 |----|----------|---------------|
@@ -424,6 +424,9 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | `content.multi-artifact` | content-types | Multiple artifacts in one task |
 | `push.create-config` | push-notifications | Create push notification config |
 | `push.delete-config` | push-notifications | Delete push notification config |
+| `push.get-config` | push-notifications | Retrieve a stored push notification config |
+| `push.list-configs` | push-notifications | List push notification configs for a task |
+| `subscribe.reattach` | subscribe-to-task | SubscribeToTask reattaches to a running task via SSE |
 | `error.method-not-found` | errors | Unknown method returns -32601 |
 | `error.invalid-jsonrpc` | errors | Invalid jsonrpc version returns error |
 | `ext.card-advertises-extensions` | extensions | Card has extensions with uri + description |
@@ -455,7 +458,7 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 
 ```bash
 uv sync --dev
-uv run pytest tests/ -v        # 111 tests
+uv run pytest tests/ -v        # 114 tests
 uv run ruff check src/ tests/  # lint
 uv run pyright                  # type check
 ```
