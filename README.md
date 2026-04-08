@@ -2,9 +2,33 @@
 
 A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
 
-Use it to **test your A2A client**, **validate spec compliance**, or **run portable contracts** against any server.
+Use it to **test your A2A client**, **validate spec compliance**, **test extension plugins**, or **run portable contracts** against any server.
 
-Pinned to `a2a-sdk==1.0.0a0`.
+Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
+
+---
+
+## Table of Contents
+
+- [Install](#install)
+- [Quick Start](#quick-start) -- get running in 30 seconds
+  - [Standalone server](#1-standalone-server) (HTTP, HTTPS, Docker)
+  - [As a library](#2-as-a-library)
+  - [Pytest fixtures](#3-pytest-fixtures) (HTTP + HTTPS)
+- [Commands](#commands) -- 13 command keywords
+- [Extensions](#extensions) -- A2A 1.0 extension negotiation
+  - [How it works](#how-it-works)
+  - [Registered extensions](#registered-extensions)
+  - [Testing with curl](#testing-extensions-with-curl)
+  - [Testing with pytest](#testing-extensions-with-pytest)
+  - [Testing with contracts](#testing-extensions-with-portable-contracts)
+- [Contract Testing](#contract-testing) -- 38 portable compliance contracts
+  - [Run against your server](#run-contracts-against-your-server)
+  - [Run as pytest](#run-contracts-as-pytest)
+  - [Contract list](#contract-list)
+- [Spec Coverage](#spec-coverage)
+- [Development](#development)
+- [License](#license)
 
 ---
 
@@ -12,8 +36,11 @@ Pinned to `a2a-sdk==1.0.0a0`.
 
 ```bash
 pip install dummy-a2a
+```
 
-# or from source
+Or from source:
+
+```bash
 git clone https://github.com/agsuy/dummy-a2a && cd dummy-a2a
 uv sync --dev
 ```
@@ -35,7 +62,7 @@ dummy-a2a --port 9443 --ssl-certfile cert.pem --ssl-keyfile key.pem
 docker run -p 9000:9000 ghcr.io/agsuy/dummy-a2a
 ```
 
-Then hit it:
+Try it out:
 
 ```bash
 # Agent card
@@ -77,12 +104,12 @@ Write tests:
 import pytest
 
 @pytest.mark.asyncio
-async def test_my_client_handles_echo(a2a_url):
+async def test_echo(a2a_url):
     result = await my_a2a_client.send(a2a_url, "echo hello")
     assert result.state == "TASK_STATE_COMPLETED"
 
 @pytest.mark.asyncio
-async def test_my_client_handles_failure(a2a_url):
+async def test_failure(a2a_url):
     result = await my_a2a_client.send(a2a_url, "fail")
     assert result.state == "TASK_STATE_FAILED"
 ```
@@ -98,7 +125,8 @@ async def test_tls(a2a_https_url):
     # self-signed cert, auto-generated per test
 ```
 
-#### Available fixtures
+<details>
+<summary><strong>All available fixtures</strong></summary>
 
 | Fixture | Type | Description |
 |---------|------|-------------|
@@ -109,6 +137,8 @@ async def test_tls(a2a_https_url):
 | `a2a_https_url` | `str` | `https://127.0.0.1:<port>` |
 | `a2a_https_http` | `httpx.AsyncClient` | TLS client (`verify=False`) |
 | `webhook_receiver` | `WebhookReceiver` | Collects push notifications |
+
+</details>
 
 ---
 
@@ -128,16 +158,130 @@ Send a command keyword as the first word of your message:
 | `file` | Returns a FilePart artifact | completed |
 | `data` | Returns a DataPart (JSON) artifact | completed |
 | `multi` | Returns 3 artifacts with chunked delivery | completed |
+| `ext` | Exercises extension negotiation | completed |
+| `ext-required` | Enforces required extension or returns -32008 | completed/error |
 | `debug` | Returns request metadata (extended card only) | completed |
 | `<anything>` | Falls back to echo | completed |
 
 ---
 
+## Extensions
+
+The dummy server implements A2A 1.0 extension negotiation for testing extension plugins.
+
+### How it works
+
+```
+Client                                              Server
+  |                                                    |
+  |  POST / + X-A2A-Extensions: urn:a2a:dummy:...      |
+  | -------------------------------------------------> |
+  |                                                    | checks context.requested_extensions
+  |                                                    | activates matching extensions
+  |                                                    | tags artifacts with extension URIs
+  |  Response + X-A2A-Extensions: urn:a2a:dummy:...    |
+  | <------------------------------------------------- |
+  |                                                    |
+```
+
+1. Agent card advertises extensions in `capabilities.extensions`
+2. Client sends `X-A2A-Extensions` header with comma-separated URIs
+3. Server activates recognized extensions, ignores unknown ones
+4. Response header echoes which extensions were activated
+5. Artifacts are tagged via `artifact.extensions`
+
+### Registered extensions
+
+| URI | Required | Params | What it does |
+|-----|----------|--------|-------------|
+| `urn:a2a:dummy:echo-metadata` | no | none | Reflects negotiation state in response artifact |
+| `urn:a2a:dummy:timestamp` | no | `{"format": "iso8601"}` | Adds server timestamp to artifacts |
+| `urn:a2a:dummy:required-test` | **yes** | none | Enforced by `ext-required`. Returns -32008 if missing |
+
+Extension URIs are importable:
+
+```python
+from dummy_a2a.agent_card import EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_REQUIRED
+```
+
+### Testing extensions with curl
+
+```bash
+# Check what extensions the server supports
+curl -s http://localhost:9000/.well-known/agent-card.json | jq '.capabilities.extensions'
+
+# Negotiate extensions
+curl -s http://localhost:9000/ \
+  -H 'Content-Type: application/json' \
+  -H 'X-A2A-Extensions: urn:a2a:dummy:echo-metadata, urn:a2a:dummy:timestamp' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext"}]}}}' \
+  -D - 2>/dev/null | head -20
+
+# Test required extension enforcement (returns -32008)
+curl -s http://localhost:9000/ \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext-required"}]}}}'
+
+# Satisfy the required extension
+curl -s http://localhost:9000/ \
+  -H 'Content-Type: application/json' \
+  -H 'X-A2A-Extensions: urn:a2a:dummy:required-test' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext-required"}]}}}'
+```
+
+### Testing extensions with pytest
+
+```python
+import httpx
+import pytest
+
+@pytest.mark.asyncio
+async def test_extension_negotiation(a2a_url):
+    async with httpx.AsyncClient(base_url=a2a_url) as client:
+        resp = await client.post("/", json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "SendMessage",
+            "params": {"message": {"messageId": "1", "role": 1,
+                "parts": [{"text": "ext"}]}}
+        }, headers={"X-A2A-Extensions": "urn:a2a:dummy:echo-metadata"})
+
+        assert "urn:a2a:dummy:echo-metadata" in resp.headers["X-A2A-Extensions"]
+
+        task = resp.json()["result"]["task"]
+        assert "urn:a2a:dummy:echo-metadata" in task["artifacts"][0]["extensions"]
+
+@pytest.mark.asyncio
+async def test_required_extension_error(a2a_url):
+    async with httpx.AsyncClient(base_url=a2a_url) as client:
+        resp = await client.post("/", json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "SendMessage",
+            "params": {"message": {"messageId": "1", "role": 1,
+                "parts": [{"text": "ext-required"}]}}
+        })
+        assert resp.json()["error"]["code"] == -32008
+```
+
+### Testing extensions with portable contracts
+
+```python
+from dummy_a2a import verify_a2a_compliance
+
+results = await verify_a2a_compliance(
+    "http://localhost:9000",
+    categories=["extensions"],
+)
+for r in results:
+    print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}")
+```
+
+---
+
 ## Contract Testing
 
-30 portable contracts that verify A2A spec compliance against **any** server.
+38 portable contracts that verify A2A spec compliance against **any** server.
 
-The dummy server is the reference implementation. Contracts pass against it (dogfooded in CI), so you know the contracts themselves are correct. Then run them against your server.
+The dummy server is the reference implementation -- contracts are dogfooded against it in CI. Run them against your server to validate compliance.
 
 ### Run contracts against your server
 
@@ -171,13 +315,14 @@ async def test_a2a_compliance(contract):
 ```python
 results = await verify_a2a_compliance(
     "http://localhost:9000",
-    categories=["agent-card", "streaming", "errors"],
+    categories=["agent-card", "streaming", "extensions"],
 )
 ```
 
-Categories: `agent-card`, `send-message`, `task-state`, `multi-turn`, `get-task`, `list-tasks`, `cancel-task`, `streaming`, `content-types`, `push-notifications`, `errors`.
+Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `list-tasks` `cancel-task` `streaming` `content-types` `push-notifications` `errors` `extensions`
 
-### Contract list
+<details>
+<summary><strong>All 38 contracts</strong></summary>
 
 | ID | Category | What it checks |
 |----|----------|---------------|
@@ -211,28 +356,28 @@ Categories: `agent-card`, `send-message`, `task-state`, `multi-turn`, `get-task`
 | `push.delete-config` | push-notifications | Delete push notification config |
 | `error.method-not-found` | errors | Unknown method returns -32601 |
 | `error.invalid-jsonrpc` | errors | Invalid jsonrpc version returns error |
+| `ext.card-advertises-extensions` | extensions | Card has extensions with uri + description |
+| `ext.negotiation-activates` | extensions | Request header activates, response header confirms |
+| `ext.unknown-ignored` | extensions | Unknown extension URIs don't error |
+| `ext.artifact-tagged` | extensions | `artifact.extensions` contains activated URIs |
+| `ext.multiple-extensions` | extensions | Multiple extensions activated simultaneously |
+| `ext.params-in-card` | extensions | Extension params accessible in card |
+| `ext.required-enforced` | extensions | Missing required extension returns -32008 |
+| `ext.required-satisfied` | extensions | Providing required extension succeeds |
+
+</details>
 
 ---
 
 ## Spec Coverage
 
-### Operations (11/11)
-
-SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask, SubscribeToTask, CreateTaskPushNotificationConfig, GetTaskPushNotificationConfig, ListTaskPushNotificationConfigs, DeleteTaskPushNotificationConfig, GetExtendedAgentCard
-
-### All 8 task states
-
-submitted, working, input_required, completed, canceled, failed, rejected, auth_required
-
-### Content types
-
-TextPart, FilePart (raw bytes), DataPart (structured JSON)
-
-### Agent card
-
-- Public card at `/.well-known/agent-card.json` (10 skills)
-- Extended card via `GetExtendedAgentCard` (adds debug skill)
-- Capabilities: streaming, push notifications, extended agent card
+| Area | Coverage |
+|------|----------|
+| **Operations** | 11/11 -- SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask, SubscribeToTask, push notification CRUD (4), GetExtendedAgentCard |
+| **Task states** | All 8 -- submitted, working, input_required, completed, canceled, failed, rejected, auth_required |
+| **Content types** | TextPart, FilePart (raw bytes), DataPart (structured JSON) |
+| **Extensions** | 3 test extensions, header negotiation, artifact tagging, required enforcement (-32008), extension params |
+| **Agent card** | Public card (12 skills, 3 extensions), extended card (adds debug), streaming + push + extensions capabilities |
 
 ---
 
@@ -240,10 +385,12 @@ TextPart, FilePart (raw bytes), DataPart (structured JSON)
 
 ```bash
 uv sync --dev
-uv run pytest tests/ -v        # 84 tests
+uv run pytest tests/ -v        # 104 tests
 uv run ruff check src/ tests/  # lint
 uv run pyright                  # type check
 ```
+
+---
 
 ## License
 
