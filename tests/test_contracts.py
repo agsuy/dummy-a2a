@@ -1,5 +1,7 @@
 """Tests that all contracts pass against our own server (dogfood)."""
 
+from contextlib import asynccontextmanager
+
 import pytest
 
 from dummy_a2a import DummyA2AServer
@@ -17,6 +19,7 @@ async def test_contract(contract, a2a_url):
 async def test_contracts_concurrent():
     """Run all contracts concurrently with isolated servers."""
 
+    @asynccontextmanager
     async def factory():
         async with DummyA2AServer(port=0) as server:
             yield server.url

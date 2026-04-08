@@ -39,8 +39,8 @@ import asyncio
 import json
 import traceback
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from collections.abc import Awaitable, Callable
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -654,8 +654,8 @@ a2a_contracts: list[Contract] = list(_contracts)
 """All registered A2A compliance contracts."""
 
 
-ServerFactory = Callable[[], AsyncIterator[str]]
-"""Async context manager factory that yields a base URL for a fresh server."""
+ServerFactory = Callable[[], AbstractAsyncContextManager[str]]
+"""Callable that returns an async context manager yielding a base URL for a fresh server."""
 
 
 async def verify_a2a_compliance(
@@ -701,8 +701,7 @@ async def verify_a2a_compliance(
     if server_factory is not None:
 
         async def _run_isolated(contract: Contract) -> ContractResult:
-            ctx = asynccontextmanager(server_factory)()
-            async with ctx as url:
+            async with server_factory() as url:
                 return await contract.verify(url)
 
         return list(await asyncio.gather(*[_run_isolated(c) for c in contracts]))
