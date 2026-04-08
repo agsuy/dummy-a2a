@@ -1,8 +1,8 @@
 name: Sync dev after release
 
-# After a successful Release on main, move dev forward to match main when dev is behind main
-# (fast-forward). If dev is ahead of or diverged from main, skip sync and exit successfully so
-# the run stays green — merge dev → main first, then sync or wait for the next release.
+# After a successful Release on main, reset dev to match origin/main and force-push (with lease).
+# This works with squash merges to main (dev is not a history ancestor of main after squash).
+# Tradeoff: any commits that exist only on dev and were never merged to main are dropped from dev.
 
 on:
   workflow_run:
@@ -28,7 +28,7 @@ jobs:
           git config user.name "agsuy"
           git config user.email "37564412+agsuy@users.noreply.github.com"
 
-      - name: Fetch main and sync only when dev is not ahead
+      - name: Reset dev to origin/main
         run: |
           set -euo pipefail
           git fetch origin main
@@ -38,11 +38,6 @@ jobs:
             echo "dev already matches main; nothing to do."
             exit 0
           fi
-          if git merge-base --is-ancestor HEAD origin/main; then
-            echo "dev is behind main; resetting dev to main."
-            git reset --hard origin/main
-            git push --force-with-lease origin HEAD:dev
-            exit 0
-          fi
-          echo "::notice::Skipping dev sync: dev is ahead of or diverged from main (reset would drop unmerged work). Merge dev into main, then push or wait for the next release."
-          exit 0
+          echo "Resetting dev to origin/main (post-release alignment; squash-safe)."
+          git reset --hard origin/main
+          git push --force-with-lease origin HEAD:dev
