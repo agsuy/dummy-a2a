@@ -97,6 +97,9 @@ class DummyA2AServer:
         if self._sdk_log_level is not None:
             logging.getLogger("a2a").setLevel(self._sdk_log_level)
 
+        if self._sdk_log_level is not None:
+            logging.getLogger("a2a").setLevel(self._sdk_log_level)
+
         executor = DummyAgentExecutor()
         executor.register_all_skills()
 
