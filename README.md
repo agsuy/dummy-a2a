@@ -6,6 +6,14 @@ Use it to **test your A2A client**, **validate spec compliance**, **test extensi
 
 Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
 
+### Two ways to use it
+
+| Goal | How |
+|------|-----|
+| **Validate your client** | Point your client at the dummy server. Send commands (`echo`, `fail`, `stream`, `ask`, `ext`, ...) and assert your client handles each response shape, state transition, SSE stream, and error code correctly. |
+| **Validate your server** | Run the 38 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
+| **Validate your extensions** | Test extension negotiation end-to-end: header negotiation, artifact tagging, required extension enforcement, and multi-extension activation. |
+
 ---
 
 ## Table of Contents
