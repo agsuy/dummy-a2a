@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.3.0 (2026-04-08)
+
+### Continuous Integration
+
+- **release**: Trim release workflow comments ([#12](https://github.com/agsuy/dummy-a2a/pull/12),
+  [`d14c181`](https://github.com/agsuy/dummy-a2a/commit/d14c1819bc7ba462624f2d0c8b67937bf3698eb8))
+
+### Features
+
+- Merge dev with recovered integration and release tooling
+  ([#12](https://github.com/agsuy/dummy-a2a/pull/12),
+  [`d14c181`](https://github.com/agsuy/dummy-a2a/commit/d14c1819bc7ba462624f2d0c8b67937bf3698eb8))
+
+- Recover dev integration lost to sync (#9-11) plus tooling
+  ([#12](https://github.com/agsuy/dummy-a2a/pull/12),
+  [`d14c181`](https://github.com/agsuy/dummy-a2a/commit/d14c1819bc7ba462624f2d0c8b67937bf3698eb8))
+
+
 <!-- Releases through v0.2.0 were backfilled after PSR bootstrap; v0.2.1+ may include PSR-generated notes. -->
 
 ## v0.2.1 (2026-04-08)
