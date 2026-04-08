@@ -5,6 +5,7 @@ from a2a.server.events import EventQueue
 from a2a.types import TaskState, TaskStatus, TaskStatusUpdateEvent
 
 from dummy_a2a.skills import SkillRouter
+from dummy_a2a.skills.base import SkillHandler
 
 
 class DummyAgentExecutor(AgentExecutor):
@@ -42,6 +43,10 @@ class DummyAgentExecutor(AgentExecutor):
         self._router.register("debug", DebugSkill())
         self._router.register("ext", ExtSkill())
         self._router.register("ext-required", ExtRequiredSkill())
+
+    def register_plugin(self, command: str, handler: SkillHandler) -> None:
+        """Register a plugin skill handler."""
+        self._router.register(command, handler)
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         handler = self._router.resolve(context)

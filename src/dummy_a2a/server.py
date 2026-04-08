@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Self
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Self
+
+if TYPE_CHECKING:
+    from dummy_a2a.plugin import A2APlugin
 
 import httpx
 import uvicorn
@@ -50,6 +54,7 @@ class DummyA2AServer:
         ssl_certfile: str | None = None,
         log_level: str = "warning",
         sdk_log_level: str | int | None = None,
+        extensions: Sequence[A2APlugin] = (),
     ) -> None:
         self._host = host
         self._port = port
@@ -57,6 +62,7 @@ class DummyA2AServer:
         self._ssl_certfile = ssl_certfile
         self._log_level = log_level
         self._sdk_log_level = sdk_log_level
+        self._plugins = list(extensions)
         self._server: uvicorn.Server | None = None
         self._serve_task: asyncio.Task[None] | None = None
         self._started = asyncio.Event()
@@ -83,6 +89,20 @@ class DummyA2AServer:
             raise RuntimeError("Server not started")
         return self._agent_card
 
+    def _register_plugins(self, executor: DummyAgentExecutor) -> None:
+        """Register plugin skills and extensions, checking for URI conflicts."""
+        from dummy_a2a.agent_card import EXTENSIONS
+        from dummy_a2a.skills.ext import register_extension
+
+        seen_uris: set[str] = {ext.uri for ext in EXTENSIONS}
+        for plugin in self._plugins:
+            uri = plugin.extension.uri
+            if uri in seen_uris:
+                raise ValueError(f"Duplicate extension URI: {uri}")
+            seen_uris.add(uri)
+            executor.register_plugin(plugin.command, plugin.handler)
+            register_extension(uri)
+
     async def start(self) -> None:
         """Start the server in the background."""
         # Disable sse-starlette's process-global shutdown flag.  It is shared
@@ -100,6 +120,9 @@ class DummyA2AServer:
         executor = DummyAgentExecutor()
         executor.register_all_skills()
 
+        # Register plugins
+        self._register_plugins(executor)
+
         task_store = InMemoryTaskStore()
         queue_manager = InMemoryQueueManager()
         push_config_store = InMemoryPushNotificationConfigStore()
@@ -116,8 +139,20 @@ class DummyA2AServer:
             push_sender=push_sender,
         )
 
-        self._agent_card = build_agent_card(self._host, self._port)
-        self._extended_card = build_extended_agent_card(self._host, self._port)
+        plugin_skills = [p.skill for p in self._plugins] or None
+        plugin_extensions = [p.extension for p in self._plugins] or None
+
+        self._agent_card = build_agent_card(
+            self._host,
+            self._port,
+            extra_skills=plugin_skills,
+            extra_extensions=plugin_extensions,
+        )
+        self._extended_card = build_extended_agent_card(
+            self._host,
+            self._port,
+            extra_extensions=plugin_extensions,
+        )
 
         a2a_app = A2AStarletteApplication(
             agent_card=self._agent_card,

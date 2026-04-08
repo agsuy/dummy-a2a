@@ -16,7 +16,12 @@ from google.protobuf import struct_pb2
 
 from dummy_a2a.agent_card import EXT_ECHO_METADATA, EXT_REQUIRED, EXT_TIMESTAMP
 
-_KNOWN_EXTENSIONS = {EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_REQUIRED}
+_KNOWN_EXTENSIONS: set[str] = {EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_REQUIRED}
+
+
+def register_extension(uri: str) -> None:
+    """Register a plugin extension URI so the ext skill can activate it."""
+    _KNOWN_EXTENSIONS.add(uri)
 
 
 class ExtSkill:
