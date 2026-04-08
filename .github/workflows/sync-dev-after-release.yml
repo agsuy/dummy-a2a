@@ -34,13 +34,18 @@ jobs:
 
       - name: Open PRs from dev to main
         id: pr_check
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          count="$(gh api "repos/${GITHUB_REPOSITORY}/pulls" \
-            -f state=open -f base=main -f head="${GITHUB_REPOSITORY_OWNER}:dev" \
-            --jq 'length')"
+          # Use curl + jq (gh CLI is not pre-installed on ubuntu-latest runners).
+          count="$(curl -fsSL \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -G "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pulls" \
+            --data-urlencode "state=open" \
+            --data-urlencode "base=main" \
+            --data-urlencode "head=${GITHUB_REPOSITORY_OWNER}:dev" \
+            --data-urlencode "per_page=100" \
+            | jq 'length')"
           echo "open_dev_to_main_prs=$count"
           if [ "$count" -gt 0 ]; then
             echo "::notice::Skipping dev reset: $count open PR(s) from dev to main."
