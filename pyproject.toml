@@ -16,7 +16,11 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "a2a-sdk[http-server,sqlite]==1.0.0a0",
+    "uvicorn>=0.34",
+    "httpx>=0.28",
+]
 authors = [
     { name = "agsuy", email = "37564412+agsuy@users.noreply.github.com" },
 ]
@@ -25,8 +29,8 @@ authors = [
 Repository = "https://github.com/agsuy/dummy-a2a"
 Issues = "https://github.com/agsuy/dummy-a2a/issues"
 
-# [project.scripts]
-# dummy_a2a = "dummy_a2a.cli:main"
+[project.scripts]
+dummy-a2a = "dummy_a2a.cli:main"
 
 # [project.optional-dependencies]
 # example = ["some-package>=1.0"]
@@ -39,7 +43,7 @@ dummy_a2a = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "tests"]
+pythonpath = ["src", "."]
 
 [tool.coverage.run]
 source = ["dummy_a2a"]
@@ -55,6 +59,8 @@ dev = [
     "pytest-cov>=6.0",
     "python-semantic-release>=10.5",
     "ruff>=0.15.6",
+    "pytest-asyncio>=0.26",
+    "cryptography>=44.0",
 ]
 
 [tool.semantic_release]

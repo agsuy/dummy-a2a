@@ -1,0 +1,152 @@
+"""DummyA2AServer -- programmatic API for starting/stopping the test agent."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Self
+
+import httpx
+import uvicorn
+from a2a.server.apps import A2AStarletteApplication
+from a2a.server.context import ServerCallContext
+from a2a.server.events import InMemoryQueueManager
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.tasks import (
+    BasePushNotificationSender,
+    InMemoryPushNotificationConfigStore,
+    InMemoryTaskStore,
+)
+from a2a.types import AgentCard
+
+from dummy_a2a.agent_card import build_agent_card, build_extended_agent_card
+from dummy_a2a.executor import DummyAgentExecutor
+
+
+class DummyA2AServer:
+    """A programmable A2A test agent server.
+
+    Usage::
+
+        async with DummyA2AServer(port=0) as server:
+            print(server.url)  # http://127.0.0.1:<random>
+            # query it with any A2A client
+
+    Args:
+        host: Bind address. Defaults to "127.0.0.1".
+        port: Bind port. Use 0 for a random available port.
+    """
+
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 9000,
+        ssl_keyfile: str | None = None,
+        ssl_certfile: str | None = None,
+    ) -> None:
+        self._host = host
+        self._port = port
+        self._ssl_keyfile = ssl_keyfile
+        self._ssl_certfile = ssl_certfile
+        self._server: uvicorn.Server | None = None
+        self._serve_task: asyncio.Task[None] | None = None
+        self._started = asyncio.Event()
+        self._agent_card: AgentCard | None = None
+        self._extended_card: AgentCard | None = None
+
+    @property
+    def url(self) -> str:
+        """Base URL of the running server."""
+        if self._server is None or not self._started.is_set():
+            raise RuntimeError("Server not started")
+        # After startup, get the actual bound port (important when port=0)
+        sockets = self._server.servers[0].sockets if self._server.servers else []
+        if sockets:
+            actual_port = sockets[0].getsockname()[1]
+        else:
+            actual_port = self._port
+        scheme = "https" if self._ssl_certfile else "http"
+        return f"{scheme}://{self._host}:{actual_port}"
+
+    @property
+    def agent_card(self) -> AgentCard:
+        if self._agent_card is None:
+            raise RuntimeError("Server not started")
+        return self._agent_card
+
+    async def start(self) -> None:
+        """Start the server in the background."""
+        # Reset sse-starlette's process-global shutdown flag — it persists
+        # across server instances and would cause SSE streams to abort
+        # immediately if a previous server was stopped in the same process.
+        from sse_starlette.sse import AppStatus
+
+        AppStatus.should_exit = False
+
+        executor = DummyAgentExecutor()
+        executor.register_all_skills()
+
+        task_store = InMemoryTaskStore()
+        queue_manager = InMemoryQueueManager()
+        push_config_store = InMemoryPushNotificationConfigStore()
+        push_sender = BasePushNotificationSender(
+            httpx_client=httpx.AsyncClient(),
+            config_store=push_config_store,
+            context=ServerCallContext(),
+        )
+        handler = DefaultRequestHandler(
+            agent_executor=executor,
+            task_store=task_store,
+            queue_manager=queue_manager,
+            push_config_store=push_config_store,
+            push_sender=push_sender,
+        )
+
+        self._agent_card = build_agent_card(self._host, self._port)
+        self._extended_card = build_extended_agent_card(self._host, self._port)
+
+        a2a_app = A2AStarletteApplication(
+            agent_card=self._agent_card,
+            http_handler=handler,
+            extended_agent_card=self._extended_card,
+        )
+        app = a2a_app.build()
+
+        config = uvicorn.Config(
+            app=app,
+            host=self._host,
+            port=self._port,
+            log_level="warning",
+            ssl_keyfile=self._ssl_keyfile,
+            ssl_certfile=self._ssl_certfile,
+        )
+        self._server = uvicorn.Server(config)
+
+        self._serve_task = asyncio.create_task(self._run_server())
+        await self._started.wait()
+
+    async def _run_server(self) -> None:
+        assert self._server is not None
+        # Patch startup to signal readiness
+        original_startup = self._server.startup
+
+        async def startup_with_signal(*args: object, **kwargs: object) -> None:
+            await original_startup(*args, **kwargs)  # type: ignore[arg-type]
+            self._started.set()
+
+        self._server.startup = startup_with_signal  # type: ignore[assignment]
+        await self._server.serve()
+
+    async def stop(self) -> None:
+        """Stop the server gracefully."""
+        if self._server is not None:
+            self._server.should_exit = True
+        if self._serve_task is not None:
+            await self._serve_task
+            self._serve_task = None
+
+    async def __aenter__(self) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        await self.stop()
