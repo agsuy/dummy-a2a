@@ -1,7 +1,8 @@
 name: Sync dev after release
 
-# Resets dev to main after the Release workflow completes.
-# Uses reset --hard so squash-merged commits do not accumulate on dev.
+# After a successful Release on main, move dev forward to match main — but ONLY when dev is
+# behind main (fast-forward). If dev has commits not on main, we fail the job instead of
+# `reset --hard`, which would silently drop integration work (e.g. an open dev → main PR).
 
 on:
   workflow_run:
@@ -27,8 +28,21 @@ jobs:
           git config user.name "agsuy"
           git config user.email "37564412+agsuy@users.noreply.github.com"
 
-      - name: Reset dev to main
-        run: git reset --hard origin/main
-
-      - name: Push
-        run: git push --force-with-lease origin dev
+      - name: Fetch main and sync only when dev is not ahead
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          main_sha="$(git rev-parse origin/main)"
+          dev_sha="$(git rev-parse HEAD)"
+          if [ "$dev_sha" = "$main_sha" ]; then
+            echo "dev already matches main; nothing to do."
+            exit 0
+          fi
+          if git merge-base --is-ancestor HEAD origin/main; then
+            echo "dev is behind main; resetting dev to main."
+            git reset --hard origin/main
+            git push --force-with-lease origin HEAD:dev
+            exit 0
+          fi
+          echo "::error::dev is ahead of or diverged from main — refusing reset (would drop unmerged work). Merge dev into main, then re-run Release or sync dev manually."
+          exit 1
