@@ -411,6 +411,7 @@ source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server", "sqlite"] },
     { name = "httpx" },
+    { name = "packaging" },
     { name = "uvicorn" },
 ]
 
@@ -429,6 +430,7 @@ dev = [
 requires-dist = [
     { name = "a2a-sdk", extras = ["http-server", "sqlite"], specifier = "==1.0.0a0" },
     { name = "httpx", specifier = ">=0.28" },
+    { name = "packaging", specifier = ">=23.2" },
     { name = "uvicorn", specifier = ">=0.34" },
 ]
 
