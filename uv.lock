@@ -406,7 +406,7 @@ wheels = [
 
 [[package]]
 name = "dummy-a2a"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server", "sqlite"] },
