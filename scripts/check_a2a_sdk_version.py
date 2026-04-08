@@ -73,7 +73,8 @@ def main(pyproject_path: Path | None = None) -> int:
             f"error: a2a-sdk on PyPI is newer than this repo pin.\n"
             f"  pinned in pyproject.toml: {pinned}\n"
             f"  latest on PyPI:           {latest}\n"
-            f"  bump the pin, run tests, and update the README SDK note.",
+            f"  bump the pin in pyproject.toml / uv.lock, run tests, update README.md "
+            f"(pin badge + intro), and sync classifiers if needed.",
             file=sys.stderr,
         )
         return 1

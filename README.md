@@ -5,12 +5,14 @@
 [![Python](https://img.shields.io/pypi/pyversions/dummy-a2a.svg?logo=python&logoColor=ffd43b&label=python)](https://pypi.org/project/dummy-a2a/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
 
+[![a2a-sdk latest on PyPI](https://img.shields.io/pypi/v/a2a-sdk.svg?logo=pypi&logoColor=white&label=a2a-sdk%20latest)](https://pypi.org/project/a2a-sdk/)
+[![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a0-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
 
 A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
 
 Use it to **test your A2A client**, **validate spec compliance**, **test extension plugins**, or **run portable contracts** against any server.
 
-Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**. We track the SDK and will update as new releases land.
+The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
 
 ### What you can validate
 
