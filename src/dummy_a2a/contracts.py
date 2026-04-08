@@ -12,19 +12,35 @@ Usage as pytest parametrized tests::
     async def test_a2a_compliance(contract):
         await contract.verify("http://localhost:9000")
 
-Usage as a standalone check::
+Usage as a standalone check (shared server, sequential)::
 
     from dummy_a2a.contracts import verify_a2a_compliance
 
     results = await verify_a2a_compliance("http://localhost:9000")
     for r in results:
         print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
+
+Usage with isolated servers (concurrent)::
+
+    from contextlib import asynccontextmanager
+    from dummy_a2a import DummyA2AServer, verify_a2a_compliance
+
+    @asynccontextmanager
+    async def factory():
+        async with DummyA2AServer(port=0) as server:
+            yield server.url
+
+    results = await verify_a2a_compliance(server_factory=factory)
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
+import traceback
 import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -40,6 +56,7 @@ class ContractResult:
     contract_id: str
     passed: bool
     detail: str = ""
+    traceback: str | None = None
 
 
 @dataclass
@@ -49,19 +66,22 @@ class Contract:
     id: str
     description: str
     category: str
-    _verify_fn: object = field(repr=False)  # async callable(httpx.AsyncClient) -> None
+    _verify_fn: Callable[[httpx.AsyncClient], Awaitable[None]] = field(repr=False)
 
     async def verify(self, base_url: str) -> ContractResult:
         """Run the contract against a server at *base_url*."""
         async with httpx.AsyncClient(base_url=base_url) as client:
             try:
-                await self._verify_fn(client)  # type: ignore[misc]
+                await self._verify_fn(client)
                 return ContractResult(contract_id=self.id, passed=True)
             except AssertionError as e:
                 return ContractResult(contract_id=self.id, passed=False, detail=str(e))
             except Exception as e:
                 return ContractResult(
-                    contract_id=self.id, passed=False, detail=f"{type(e).__name__}: {e}"
+                    contract_id=self.id,
+                    passed=False,
+                    detail=f"{type(e).__name__}: {e}",
+                    traceback=traceback.format_exc(),
                 )
 
     def __repr__(self) -> str:
@@ -634,24 +654,60 @@ a2a_contracts: list[Contract] = list(_contracts)
 """All registered A2A compliance contracts."""
 
 
+ServerFactory = Callable[[], AsyncIterator[str]]
+"""Async context manager factory that yields a base URL for a fresh server."""
+
+
 async def verify_a2a_compliance(
-    base_url: str,
+    base_url: str | None = None,
+    *,
+    server_factory: ServerFactory | None = None,
     categories: list[str] | None = None,
 ) -> list[ContractResult]:
     """Run all contracts against a server and return results.
 
+    Provide either *base_url* (shared server, sequential execution) or
+    *server_factory* (fresh server per contract, concurrent execution).
+
     Args:
         base_url: The A2A server URL (e.g. "http://localhost:9000").
-        categories: Optional list of categories to filter (e.g. ["agent-card", "send-message"]).
-            If None, runs all contracts.
+            Contracts run sequentially and share server state.
+        server_factory: An async context manager factory that yields a base URL
+            for an isolated server instance. Each contract gets its own server
+            and contracts run concurrently. Example::
+
+                from dummy_a2a import DummyA2AServer
+
+                @asynccontextmanager
+                async def factory():
+                    async with DummyA2AServer(port=0) as server:
+                        yield server.url
+
+                results = await verify_a2a_compliance(server_factory=factory)
+
+        categories: Optional list of categories to filter
+            (e.g. ["agent-card", "send-message"]). If None, runs all contracts.
 
     Returns:
         List of ContractResult with pass/fail status for each contract.
     """
+    if base_url is None and server_factory is None:
+        raise ValueError("Provide either base_url or server_factory")
+
     contracts = a2a_contracts
     if categories:
         contracts = [c for c in contracts if c.category in categories]
 
+    if server_factory is not None:
+
+        async def _run_isolated(contract: Contract) -> ContractResult:
+            ctx = asynccontextmanager(server_factory)()
+            async with ctx as url:
+                return await contract.verify(url)
+
+        return list(await asyncio.gather(*[_run_isolated(c) for c in contracts]))
+
+    assert base_url is not None
     results = []
     for contract in contracts:
         result = await contract.verify(base_url)
