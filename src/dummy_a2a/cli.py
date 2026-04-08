@@ -12,6 +12,16 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=9000, help="Bind port (default: 9000)")
     parser.add_argument("--ssl-keyfile", default=None, help="SSL key file for HTTPS")
     parser.add_argument("--ssl-certfile", default=None, help="SSL certificate file for HTTPS")
+    parser.add_argument(
+        "--log-level",
+        default="warning",
+        help="Logging level for the server (default: warning)",
+    )
+    parser.add_argument(
+        "--sdk-log-level",
+        default=None,
+        help="Logging level for the a2a SDK (e.g. WARNING, ERROR)",
+    )
     args = parser.parse_args()
 
     async def run() -> None:
@@ -20,6 +30,8 @@ def main() -> None:
             port=args.port,
             ssl_keyfile=args.ssl_keyfile,
             ssl_certfile=args.ssl_certfile,
+            log_level=args.log_level,
+            sdk_log_level=args.sdk_log_level,
         ) as server:
             print(f"Dummy A2A agent running at {server.url}")
             print(f"Agent card: {server.url}/.well-known/agent-card.json")

@@ -168,8 +168,14 @@ DEBUG_SKILL = AgentSkill(
 )
 
 
-def build_agent_card(host: str, port: int) -> AgentCard:
-    """Build the public agent card."""
+def build_agent_card(
+    host: str,
+    port: int,
+    *,
+    extra_skills: list[AgentSkill] | None = None,
+) -> AgentCard:
+    """Build an agent card, optionally with extra skills appended."""
+    skills = SKILLS if extra_skills is None else SKILLS + extra_skills
     return AgentCard(
         name="Dummy A2A Test Agent",
         description=(
@@ -193,12 +199,10 @@ def build_agent_card(host: str, port: int) -> AgentCard:
         ),
         default_input_modes=["text/plain"],
         default_output_modes=["text/plain"],
-        skills=SKILLS,
+        skills=skills,
     )
 
 
 def build_extended_agent_card(host: str, port: int) -> AgentCard:
     """Build the extended agent card (includes debug skill)."""
-    card = build_agent_card(host, port)
-    card.skills.append(DEBUG_SKILL)
-    return card
+    return build_agent_card(host, port, extra_skills=[DEBUG_SKILL])

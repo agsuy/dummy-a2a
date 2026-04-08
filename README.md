@@ -14,6 +14,8 @@ Use it to **test your A2A client**, **validate spec compliance**, **test extensi
 
 The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
 
+Codebase is intentionally small (~2100 LOC) and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When and if spec changes, the blast radius is typically one skill or one contract and easy to update.
+
 ### What you can validate
 
 | Goal | How |
@@ -76,6 +78,26 @@ dummy-a2a --port 9443 --ssl-certfile cert.pem --ssl-keyfile key.pem
 
 # Docker
 docker run -p 9000:9000 ghcr.io/agsuy/dummy-a2a
+
+# Quiet mode (suppress a2a SDK noise like push-notification errors)
+dummy-a2a --sdk-log-level CRITICAL
+
+# Verbose mode (see all server and SDK activity)
+dummy-a2a --log-level info --sdk-log-level DEBUG
+```
+
+`--log-level` controls the server (uvicorn) logger, `--sdk-log-level` controls the `a2a` SDK logger independently. Both accept standard Python log levels (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).
+
+As a library:
+
+```python
+# Silence SDK noise programmatically
+async with DummyA2AServer(port=0, sdk_log_level="CRITICAL") as server:
+    ...
+
+# Verbose server + quiet SDK
+async with DummyA2AServer(port=0, log_level="info", sdk_log_level="ERROR") as server:
+    ...
 ```
 
 Try it out:
@@ -311,12 +333,34 @@ The dummy server is the reference implementation -- contracts are dogfooded agai
 
 ### Run contracts against your server
 
+Sequential execution against a shared server:
+
 ```python
 import asyncio
 from dummy_a2a import verify_a2a_compliance
 
 async def main():
     results = await verify_a2a_compliance("http://localhost:9000")
+    for r in results:
+        print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
+
+asyncio.run(main())
+```
+
+Concurrent execution with isolated servers (each contract gets a fresh instance):
+
+```python
+import asyncio
+from contextlib import asynccontextmanager
+from dummy_a2a import DummyA2AServer, verify_a2a_compliance
+
+@asynccontextmanager
+async def factory():
+    async with DummyA2AServer(port=0) as server:
+        yield server.url
+
+async def main():
+    results = await verify_a2a_compliance(server_factory=factory)
     for r in results:
         print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
 
@@ -411,7 +455,7 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 
 ```bash
 uv sync --dev
-uv run pytest tests/ -v        # 104 tests
+uv run pytest tests/ -v        # 111 tests
 uv run ruff check src/ tests/  # lint
 uv run pyright                  # type check
 ```
