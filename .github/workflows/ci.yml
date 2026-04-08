@@ -20,6 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check CHANGELOG.md has PSR insertion marker
+        run: |
+          test -f CHANGELOG.md
+          grep -Fq '<!-- version list -->' CHANGELOG.md || {
+            echo "CHANGELOG.md must contain '<!-- version list -->' for python-semantic-release" >&2
+            exit 1
+          }
+
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
