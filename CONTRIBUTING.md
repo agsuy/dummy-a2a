@@ -69,11 +69,12 @@ After finishing a logical change, run:
 3. `scripts/lint-check.sh`
 4. `scripts/type-check.sh`
 5. `scripts/test.sh`
-6. `scripts/smoke-publish-wheel.sh` (included in `scripts/verify.sh` before `check-version.sh`)
+6. `scripts/check-a2a-sdk-version.sh` (PyPI has no newer **`a2a-sdk`** than the `==` pin in **`pyproject.toml`**). When you bump the pin, update the **static `a2a-sdk pin` badge** in **`README.md`** so it matches **`pyproject.toml`**.
+7. `scripts/smoke-publish-wheel.sh` (included in `scripts/verify.sh` before `check-version.sh`)
 
 `scripts/smoke-publish-wheel.sh` matches **Publish** CI: **`uv build`** then an **isolated** `python -c "import dummy_a2a"` with **only** the wheel (plus deps from package metadata). Use it to catch missing **`pyproject.toml`** dependencies before a release.
 
-`scripts/verify.sh` runs the lint/test/type sequence above, then the wheel smoke step, then `check-version.sh`.
+`scripts/verify.sh` runs the lint/test/type sequence above, **`check-a2a-sdk-version.sh`**, the wheel smoke step, then `check-version.sh`.
 
 Use `scripts/commit.sh "<type>(<scope>): <subject>"` for conventional commits.
 
