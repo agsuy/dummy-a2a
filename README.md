@@ -12,7 +12,7 @@ Use it to **test your A2A client**, **validate spec compliance**, **test extensi
 
 Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**. We track the SDK and will update as new releases land.
 
-### Two ways to use it
+### What you can validate
 
 | Goal | How |
 |------|-----|
@@ -29,7 +29,7 @@ Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**
   - [Standalone server](#1-standalone-server) (HTTP, HTTPS, Docker)
   - [As a library](#2-as-a-library)
   - [Pytest fixtures](#3-pytest-fixtures) (HTTP + HTTPS)
-- [Commands](#commands) -- 13 command keywords
+- [Commands](#commands) -- 14 command keywords
 - [Extensions](#extensions) -- A2A 1.0 extension negotiation
   - [How it works](#how-it-works)
   - [Registered extensions](#registered-extensions)
@@ -89,7 +89,7 @@ curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
   "method": "SendMessage",
   "params": {"message": {"messageId": "1", "role": 1, "parts": [{"text": "echo hello"}]}}
 }'
-# → {"jsonrpc": "2.0", "id": 1, "result": {"task": {"taskId": "...", "status": {"state": "TASK_STATE_COMPLETED"}, "artifacts": [{"parts": [{"text": "hello"}]}], ...}}}
+# → {"result": {"task": {"id": "...", "contextId": "...", "status": {"state": "TASK_STATE_COMPLETED"}, "artifacts": [{"parts": [{"text": "hello"}]}], "history": [...]}}, "id": 1, "jsonrpc": "2.0"}
 
 # Trigger a failure
 curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
@@ -97,7 +97,7 @@ curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
   "method": "SendMessage",
   "params": {"message": {"messageId": "1", "role": 1, "parts": [{"text": "fail"}]}}
 }'
-# → {"jsonrpc": "2.0", "id": 1, "result": {"task": {"taskId": "...", "status": {"state": "TASK_STATE_FAILED", "message": {"parts": [{"text": "Task failed as requested."}]}}, ...}}}
+# → {"result": {"task": {"id": "...", "status": {"state": "TASK_STATE_FAILED", "message": {"role": "ROLE_AGENT", "parts": [{"text": "Deliberate failure for testing purposes."}]}}, "history": [...]}}, "id": 1, "jsonrpc": "2.0"}
 ```
 
 ### 2. As a library
