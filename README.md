@@ -1,10 +1,16 @@
 # dummy-a2a
 
+[![CI](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml/badge.svg)](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/dummy-a2a)](https://pypi.org/project/dummy-a2a/)
+[![Python versions](https://img.shields.io/pypi/pyversions/dummy-a2a)](https://pypi.org/project/dummy-a2a/)
+[![License](https://img.shields.io/pypi/l/dummy-a2a)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
+
+
 A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
 
 Use it to **test your A2A client**, **validate spec compliance**, **test extension plugins**, or **run portable contracts** against any server.
 
-Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
+Pinned to `a2a-sdk==1.0.0a0`. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**. We track the SDK and will update as new releases land.
 
 ### Two ways to use it
 
@@ -75,6 +81,7 @@ Try it out:
 ```bash
 # Agent card
 curl http://localhost:9000/.well-known/agent-card.json
+# → {"name": "Dummy A2A Test Agent", "skills": [...], "capabilities": {...}, ...}
 
 # Send a message
 curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
@@ -82,6 +89,15 @@ curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
   "method": "SendMessage",
   "params": {"message": {"messageId": "1", "role": 1, "parts": [{"text": "echo hello"}]}}
 }'
+# → {"jsonrpc": "2.0", "id": 1, "result": {"task": {"taskId": "...", "status": {"state": "TASK_STATE_COMPLETED"}, "artifacts": [{"parts": [{"text": "hello"}]}], ...}}}
+
+# Trigger a failure
+curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
+  "jsonrpc": "2.0", "id": 1,
+  "method": "SendMessage",
+  "params": {"message": {"messageId": "1", "role": 1, "parts": [{"text": "fail"}]}}
+}'
+# → {"jsonrpc": "2.0", "id": 1, "result": {"task": {"taskId": "...", "status": {"state": "TASK_STATE_FAILED", "message": {"parts": [{"text": "Task failed as requested."}]}}, ...}}}
 ```
 
 ### 2. As a library
