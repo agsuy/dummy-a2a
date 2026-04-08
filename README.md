@@ -14,7 +14,7 @@ Use it to **test your A2A client**, **validate spec compliance**, **test extensi
 
 The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
 
-Codebase is intentionally small (~2100 LOC) and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When and if spec changes, the blast radius is typically one skill or one contract and easy to update.
+Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When and if spec changes, the blast radius is typically one skill or one contract and easy to update.
 
 ### What you can validate
 
