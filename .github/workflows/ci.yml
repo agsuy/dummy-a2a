@@ -32,6 +32,9 @@ jobs:
       - name: Check lockfile is up to date
         run: uv lock --check
 
+      - name: Check a2a-sdk pin vs PyPI
+        run: scripts/check-a2a-sdk-version.sh
+
       - name: Lint and format check
         run: scripts/lint-check.sh
 
