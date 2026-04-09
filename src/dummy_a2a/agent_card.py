@@ -173,9 +173,11 @@ def build_agent_card(
     port: int,
     *,
     extra_skills: list[AgentSkill] | None = None,
+    extra_extensions: list[AgentExtension] | None = None,
 ) -> AgentCard:
-    """Build an agent card, optionally with extra skills appended."""
+    """Build an agent card, optionally with extra skills/extensions appended."""
     skills = SKILLS if extra_skills is None else SKILLS + extra_skills
+    extensions = EXTENSIONS if extra_extensions is None else EXTENSIONS + extra_extensions
     return AgentCard(
         name="Dummy A2A Test Agent",
         description=(
@@ -195,7 +197,7 @@ def build_agent_card(
             streaming=True,
             push_notifications=True,
             extended_agent_card=True,
-            extensions=EXTENSIONS,
+            extensions=extensions,
         ),
         default_input_modes=["text/plain"],
         default_output_modes=["text/plain"],
@@ -203,6 +205,13 @@ def build_agent_card(
     )
 
 
-def build_extended_agent_card(host: str, port: int) -> AgentCard:
+def build_extended_agent_card(
+    host: str,
+    port: int,
+    *,
+    extra_extensions: list[AgentExtension] | None = None,
+) -> AgentCard:
     """Build the extended agent card (includes debug skill)."""
-    return build_agent_card(host, port, extra_skills=[DEBUG_SKILL])
+    return build_agent_card(
+        host, port, extra_skills=[DEBUG_SKILL], extra_extensions=extra_extensions
+    )

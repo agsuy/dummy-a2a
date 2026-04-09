@@ -21,8 +21,8 @@ Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-co
 | Goal | How |
 |------|-----|
 | **Validate your client** | Point your client at the dummy server. Send commands (`echo`, `fail`, `stream`, `ask`, `ext`, ...) and assert your client handles each response shape, state transition, SSE stream, and error code correctly. |
-| **Validate your server** | Run the 38 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
-| **Validate your extensions** | Test extension negotiation end-to-end: header negotiation, artifact tagging, required extension enforcement, and multi-extension activation. |
+| **Validate your server** | Run the 41 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
+| **Validate your extensions** | Register your extension as a plugin via `A2APlugin` and test it end-to-end: agent card advertising, header negotiation, artifact tagging, and multi-extension activation. |
 
 ---
 
@@ -37,10 +37,11 @@ Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-co
 - [Extensions](#extensions) -- A2A 1.0 extension negotiation
   - [How it works](#how-it-works)
   - [Registered extensions](#registered-extensions)
+  - [Extension plugins](#extension-plugins) -- test your own extension
   - [Testing with curl](#testing-extensions-with-curl)
   - [Testing with pytest](#testing-extensions-with-pytest)
   - [Testing with contracts](#testing-extensions-with-portable-contracts)
-- [Contract Testing](#contract-testing) -- 38 portable compliance contracts
+- [Contract Testing](#contract-testing) -- 41 portable compliance contracts
   - [Run against your server](#run-contracts-against-your-server)
   - [Run as pytest](#run-contracts-as-pytest)
   - [Contract list](#contract-list)
@@ -252,6 +253,160 @@ Extension URIs are importable:
 from dummy_a2a.agent_card import EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_REQUIRED
 ```
 
+### Extension plugins
+
+Register your own A2A extension with the dummy server using `A2APlugin`. The server will advertise it in the agent card, route its command to your handler, and the `ext` skill will activate it during header negotiation -- no changes to dummy-a2a needed.
+
+An `A2APlugin` bundles four pieces:
+
+| Field | Type | What it does |
+|-------|------|-------------|
+| `extension` | `AgentExtension` | Declared in `capabilities.extensions` on the agent card |
+| `skill` | `AgentSkill` | Listed in `skills` on the agent card |
+| `command` | `str` | First word of the user message that routes to your handler |
+| `handler` | `SkillHandler` | Async handler that produces task events and artifacts |
+
+**Minimal example:**
+
+```python
+from a2a.server.agent_execution import RequestContext
+from a2a.server.events import EventQueue
+from a2a.types import (
+    AgentExtension,
+    AgentSkill,
+    TaskArtifactUpdateEvent,
+    TaskState,
+    TaskStatus,
+    TaskStatusUpdateEvent,
+)
+from a2a.utils import new_text_artifact
+
+from dummy_a2a import A2APlugin, DummyA2AServer
+
+MY_EXT_URI = "urn:example:my-extension"
+
+
+class MyExtensionSkill:
+    async def handle(self, context: RequestContext, event_queue: EventQueue) -> None:
+        # Activate the extension if requested via header
+        if MY_EXT_URI in context.requested_extensions:
+            context.add_activated_extension(MY_EXT_URI)
+
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=context.task_id,
+                context_id=context.context_id,
+                status=TaskStatus(state=TaskState.TASK_STATE_WORKING),
+            )
+        )
+        await event_queue.enqueue_event(
+            TaskArtifactUpdateEvent(
+                task_id=context.task_id,
+                context_id=context.context_id,
+                artifact=new_text_artifact(name="result", text="hello from plugin"),
+                last_chunk=True,
+            )
+        )
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=context.task_id,
+                context_id=context.context_id,
+                status=TaskStatus(state=TaskState.TASK_STATE_COMPLETED),
+            )
+        )
+
+
+my_plugin = A2APlugin(
+    extension=AgentExtension(
+        uri=MY_EXT_URI,
+        description="My custom A2A extension",
+    ),
+    skill=AgentSkill(
+        id="myext",
+        name="My Extension",
+        description="Test skill for my extension.",
+        tags=["test"],
+        examples=["myext hello"],
+        input_modes=["text/plain"],
+        output_modes=["text/plain"],
+    ),
+    command="myext",
+    handler=MyExtensionSkill(),
+)
+```
+
+**Start the server with your plugin:**
+
+```python
+async with DummyA2AServer(port=0, extensions=[my_plugin]) as server:
+    print(server.url)
+    # Agent card now lists your extension and skill
+    # "myext hello" routes to MyExtensionSkill
+    # "ext" with X-A2A-Extensions header activates your extension
+```
+
+**Use in pytest:**
+
+```python
+import httpx
+import pytest
+
+from dummy_a2a import A2APlugin, DummyA2AServer
+
+@pytest.fixture
+async def server():
+    async with DummyA2AServer(port=0, extensions=[my_plugin]) as s:
+        yield s
+
+@pytest.mark.asyncio
+async def test_my_extension(server):
+    async with httpx.AsyncClient(base_url=server.url) as client:
+        # Verify extension is in the agent card
+        card = (await client.get("/.well-known/agent-card.json")).json()
+        uris = [e["uri"] for e in card["capabilities"]["extensions"]]
+        assert MY_EXT_URI in uris
+
+        # Send command with extension header
+        resp = await client.post("/", json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "SendMessage",
+            "params": {"message": {"messageId": "1", "role": 1,
+                "parts": [{"text": "myext hello"}]}}
+        }, headers={"X-A2A-Extensions": MY_EXT_URI})
+
+        # Extension activated in response header
+        assert MY_EXT_URI in resp.headers.get("X-A2A-Extensions", "")
+
+        # Task completed
+        task = resp.json()["result"]["task"]
+        assert task["status"]["state"] == "TASK_STATE_COMPLETED"
+```
+
+**Multiple plugins:**
+
+```python
+async with DummyA2AServer(port=0, extensions=[plugin_a, plugin_b]) as server:
+    ...
+```
+
+**Collision rules:**
+
+- **Duplicate extension URIs** (between plugins or with built-ins) raise `ValueError` at startup.
+- **Command collisions** with built-in skills log a warning and override the built-in.
+
+**Public API for plugin authors:**
+
+```python
+from dummy_a2a import A2APlugin, SkillHandler, DummyA2AServer
+```
+
+`SkillHandler` is the protocol your handler must satisfy:
+
+```python
+class SkillHandler(Protocol):
+    async def handle(self, context: RequestContext, event_queue: EventQueue) -> None: ...
+```
+
 ### Testing extensions with curl
 
 ```bash
@@ -449,7 +604,7 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | **Operations** | 11/11 -- SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask, SubscribeToTask, push notification CRUD (4), GetExtendedAgentCard |
 | **Task states** | All 8 -- submitted, working, input_required, completed, canceled, failed, rejected, auth_required |
 | **Content types** | TextPart, FilePart (raw bytes), DataPart (structured JSON) |
-| **Extensions** | 3 test extensions, header negotiation, artifact tagging, required enforcement (-32008), extension params |
+| **Extensions** | 3 test extensions + plugin system for external extensions, header negotiation, artifact tagging, required enforcement (-32008), extension params |
 | **Agent card** | Public card (12 skills, 3 extensions), extended card (adds debug), streaming + push + extensions capabilities |
 
 ---
