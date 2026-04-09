@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-04-09)
+
+### Continuous Integration
+
+- **sync-dev**: List open PRs with github-script ([#16](https://github.com/agsuy/dummy-a2a/pull/16),
+  [`bd66bc6`](https://github.com/agsuy/dummy-a2a/commit/bd66bc61d8f37bbf7b88bac4c0f911f8694f72a2))
+
+- **sync-dev**: List PRs with curl instead of gh ([#15](https://github.com/agsuy/dummy-a2a/pull/15),
+  [`9bb58c3`](https://github.com/agsuy/dummy-a2a/commit/9bb58c379b24caec7e68319530c87da2ceb4efba))
+
+### Documentation
+
+- **readme**: Document extension plugins and update contract summary
+  ([#17](https://github.com/agsuy/dummy-a2a/pull/17),
+  [`e00f076`](https://github.com/agsuy/dummy-a2a/commit/e00f07650727a1ee7c825f1458d47bb2695cdb0f))
+
+- **readme**: Update portable contract count to 41
+  ([#17](https://github.com/agsuy/dummy-a2a/pull/17),
+  [`e00f076`](https://github.com/agsuy/dummy-a2a/commit/e00f07650727a1ee7c825f1458d47bb2695cdb0f))
+
+### Features
+
+- **extensions**: A2APlugin for custom extensions
+  ([#17](https://github.com/agsuy/dummy-a2a/pull/17),
+  [`e00f076`](https://github.com/agsuy/dummy-a2a/commit/e00f07650727a1ee7c825f1458d47bb2695cdb0f))
+
+- **extensions**: Add A2APlugin for registering custom extensions
+  ([#17](https://github.com/agsuy/dummy-a2a/pull/17),
+  [`e00f076`](https://github.com/agsuy/dummy-a2a/commit/e00f07650727a1ee7c825f1458d47bb2695cdb0f))
+
+
 ## v0.4.0 (2026-04-08)
 
 ### Continuous Integration
