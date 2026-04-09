@@ -1,9 +1,13 @@
 """Skill router and handler registry."""
 
+import logging
+
 from a2a.server.agent_execution import RequestContext
 from a2a.types import Role, Task, TaskState
 
 from dummy_a2a.skills.base import SkillHandler
+
+logger = logging.getLogger(__name__)
 
 
 class SkillRouter:
@@ -19,7 +23,10 @@ class SkillRouter:
         self._fallback: SkillHandler | None = None
 
     def register(self, command: str, handler: SkillHandler, *, fallback: bool = False) -> None:
-        self._handlers[command.lower()] = handler
+        key = command.lower()
+        if key in self._handlers:
+            logger.warning("Command %r overridden by %s", key, type(handler).__name__)
+        self._handlers[key] = handler
         if fallback or self._fallback is None:
             self._fallback = handler
 
