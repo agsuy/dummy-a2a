@@ -46,6 +46,8 @@ from typing import Any
 
 import httpx
 
+from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS
+
 # ---------------------------------------------------------------------------
 # Core types
 # ---------------------------------------------------------------------------
@@ -70,7 +72,10 @@ class Contract:
 
     async def verify(self, base_url: str) -> ContractResult:
         """Run the contract against a server at *base_url*."""
-        async with httpx.AsyncClient(base_url=base_url) as client:
+        async with httpx.AsyncClient(
+            base_url=base_url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             try:
                 await self._verify_fn(client)
                 return ContractResult(contract_id=self.id, passed=True)
