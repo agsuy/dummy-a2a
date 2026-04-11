@@ -2,7 +2,14 @@
 
 import pytest
 
-from dummy_a2a.agent_card import EXT_ECHO_METADATA, EXT_REQUIRED, EXT_TIMESTAMP
+from dummy_a2a.agent_card import (
+    EXT_ECHO_METADATA,
+    EXT_LOCALE,
+    EXT_PRIORITY,
+    EXT_REQUIRED,
+    EXT_TIMESTAMP,
+    EXT_TRACE_ID,
+)
 from tests.helpers import rpc_request, send_message_params
 
 pytestmark = pytest.mark.asyncio
@@ -153,3 +160,106 @@ async def test_card_extension_params(a2a_http):
     exts = resp.json()["capabilities"]["extensions"]
     ts_ext = next(e for e in exts if e["uri"] == EXT_TIMESTAMP)
     assert ts_ext.get("params", {}).get("format") == "iso8601"
+
+
+# --- Multi-extension tests ---
+
+ALL_NON_REQUIRED = [EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_TRACE_ID, EXT_PRIORITY, EXT_LOCALE]
+
+
+async def test_ext_activates_three_plus_extensions(a2a_http):
+    """All 5 non-required extensions activate when requested together."""
+    resp = await a2a_http.post(
+        "/",
+        json=rpc_request("SendMessage", send_message_params("ext")),
+        headers={EXTENSION_HEADER: ", ".join(ALL_NON_REQUIRED)},
+    )
+    assert resp.status_code == 200
+    activated_header = resp.headers.get(EXTENSION_HEADER, "")
+    for uri in ALL_NON_REQUIRED:
+        assert uri in activated_header, f"Expected {uri} in activated header"
+
+
+async def test_ext_partial_activation_mixed(a2a_http):
+    """Only known extensions activate when mixed with unknown URIs."""
+    known = [EXT_ECHO_METADATA, EXT_TRACE_ID]
+    unknown = ["urn:a2a:unknown:one", "urn:a2a:unknown:two"]
+    resp = await a2a_http.post(
+        "/",
+        json=rpc_request("SendMessage", send_message_params("ext")),
+        headers={EXTENSION_HEADER: ", ".join(known + unknown)},
+    )
+    task = resp.json()["result"]["task"]
+    data = task["artifacts"][0]["parts"][0]["data"]
+    activated = data.get("activated", [])
+    assert len(activated) == len(known)
+    for uri in known:
+        assert uri in activated
+    for uri in unknown:
+        assert uri not in activated
+
+
+async def test_ext_artifact_extensions_exact_match(a2a_http):
+    """artifact.extensions matches the activated set exactly (no extras, no missing)."""
+    requested = [EXT_ECHO_METADATA, EXT_TRACE_ID, EXT_LOCALE]
+    resp = await a2a_http.post(
+        "/",
+        json=rpc_request("SendMessage", send_message_params("ext")),
+        headers={EXTENSION_HEADER: ", ".join(requested)},
+    )
+    task = resp.json()["result"]["task"]
+    artifact_exts = set(task["artifacts"][0].get("extensions", []))
+    assert artifact_exts == set(requested), (
+        f"artifact.extensions {artifact_exts} != requested {set(requested)}"
+    )
+
+
+async def test_ext_header_matches_artifact(a2a_http):
+    """Activated extensions in response header match artifact.extensions."""
+    requested = [EXT_ECHO_METADATA, EXT_PRIORITY]
+    resp = await a2a_http.post(
+        "/",
+        json=rpc_request("SendMessage", send_message_params("ext")),
+        headers={EXTENSION_HEADER: ", ".join(requested)},
+    )
+    header_uris = {
+        u.strip() for u in resp.headers.get(EXTENSION_HEADER, "").split(",") if u.strip()
+    }
+    task = resp.json()["result"]["task"]
+    artifact_uris = set(task["artifacts"][0].get("extensions", []))
+    assert header_uris == artifact_uris, f"Header {header_uris} != artifact {artifact_uris}"
+
+
+async def test_ext_ordering_stable(a2a_http):
+    """Same extension combination produces stable ordering across requests."""
+    requested = [EXT_LOCALE, EXT_ECHO_METADATA, EXT_TRACE_ID]
+    resp1 = await a2a_http.post(
+        "/",
+        json=rpc_request("SendMessage", send_message_params("ext")),
+        headers={EXTENSION_HEADER: ", ".join(requested)},
+    )
+    resp2 = await a2a_http.post(
+        "/",
+        json=rpc_request("SendMessage", send_message_params("ext")),
+        headers={EXTENSION_HEADER: ", ".join(requested)},
+    )
+    exts1 = resp1.json()["result"]["task"]["artifacts"][0].get("extensions", [])
+    exts2 = resp2.json()["result"]["task"]["artifacts"][0].get("extensions", [])
+    assert exts1 == exts2, f"Ordering unstable: {exts1} != {exts2}"
+
+
+async def test_card_advertises_new_extensions(a2a_http):
+    """Agent card includes the new trace-id, priority, and locale extensions."""
+    resp = await a2a_http.get("/.well-known/agent-card.json")
+    uris = [e["uri"] for e in resp.json()["capabilities"]["extensions"]]
+    assert EXT_TRACE_ID in uris
+    assert EXT_PRIORITY in uris
+    assert EXT_LOCALE in uris
+
+
+async def test_ext_priority_has_params(a2a_http):
+    """Priority extension has params.levels in the agent card."""
+    resp = await a2a_http.get("/.well-known/agent-card.json")
+    exts = resp.json()["capabilities"]["extensions"]
+    priority_ext = next(e for e in exts if e["uri"] == EXT_PRIORITY)
+    assert priority_ext.get("params", {}).get("levels") == "low,normal,high"
