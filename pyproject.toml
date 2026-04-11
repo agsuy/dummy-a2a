@@ -14,10 +14,11 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
 dependencies = [
-    "a2a-sdk[http-server,sqlite]==1.0.0a0",
+    "a2a-sdk[http-server,sqlite]==1.0.0a1",
     "httpx>=0.28",
     "packaging>=23.2",
     "uvicorn>=0.34",
