@@ -12,6 +12,9 @@ from a2a.types import (
 # Extension URIs — importable by tests/contracts
 EXT_ECHO_METADATA = "urn:a2a:dummy:echo-metadata"
 EXT_TIMESTAMP = "urn:a2a:dummy:timestamp"
+EXT_TRACE_ID = "urn:a2a:dummy:trace-id"
+EXT_PRIORITY = "urn:a2a:dummy:priority"
+EXT_LOCALE = "urn:a2a:dummy:locale"
 EXT_REQUIRED = "urn:a2a:dummy:required-test"
 
 EXTENSIONS: list[AgentExtension] = [
@@ -25,6 +28,19 @@ EXTENSIONS: list[AgentExtension] = [
         uri=EXT_TIMESTAMP,
         description="When activated, adds a server timestamp to artifacts.",
         params={"format": "iso8601"},
+    ),
+    AgentExtension(
+        uri=EXT_TRACE_ID,
+        description="When activated, attaches a trace identifier to the response.",
+    ),
+    AgentExtension(
+        uri=EXT_PRIORITY,
+        description="When activated, acknowledges priority level in the response.",
+        params={"levels": "low,normal,high"},
+    ),
+    AgentExtension(
+        uri=EXT_LOCALE,
+        description="When activated, acknowledges locale preference in the response.",
     ),
     AgentExtension(
         uri=EXT_REQUIRED,

@@ -46,6 +46,8 @@ from typing import Any
 
 import httpx
 
+from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS
+
 # ---------------------------------------------------------------------------
 # Core types
 # ---------------------------------------------------------------------------
@@ -70,7 +72,10 @@ class Contract:
 
     async def verify(self, base_url: str) -> ContractResult:
         """Run the contract against a server at *base_url*."""
-        async with httpx.AsyncClient(base_url=base_url) as client:
+        async with httpx.AsyncClient(
+            base_url=base_url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             try:
                 await self._verify_fn(client)
                 return ContractResult(contract_id=self.id, passed=True)
@@ -686,9 +691,9 @@ async def _(client: httpx.AsyncClient) -> None:
     card = (await client.get("/.well-known/agent-card.json")).json()
     exts = card.get("capabilities", {}).get("extensions", [])
     non_required = [e for e in exts if not e.get("required")]
-    if len(non_required) < 2:
-        return  # Skip if fewer than 2 non-required extensions
-    uris = [e["uri"] for e in non_required[:2]]
+    if len(non_required) < 3:
+        return  # Skip if fewer than 3 non-required extensions
+    uris = [e["uri"] for e in non_required[:3]]
 
     resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
     activated = resp.headers.get(_EXT_HEADER, "")
@@ -746,6 +751,118 @@ async def _(client: httpx.AsyncClient) -> None:
     assert "result" in body, f"Expected result, got: {body.get('error')}"
     assert body["result"]["task"]["status"]["state"] == "TASK_STATE_COMPLETED"
     assert uri in resp.headers.get(_EXT_HEADER, "")
+
+
+@_contract(
+    "ext.partial-activation",
+    "Only known extensions activate when mixed with unknown URIs",
+    "extensions",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    card = (await client.get("/.well-known/agent-card.json")).json()
+    exts = card.get("capabilities", {}).get("extensions", [])
+    non_required = [e for e in exts if not e.get("required")]
+    if len(non_required) < 2:
+        return
+    known_uris = [e["uri"] for e in non_required[:2]]
+    unknown_uris = ["urn:a2a:unknown:one", "urn:a2a:unknown:two"]
+    all_uris = known_uris + unknown_uris
+
+    resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(all_uris)})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "result" in body, f"Expected result, got: {body.get('error')}"
+    task = body["result"]["task"]
+    data = task["artifacts"][0]["parts"][0]["data"]
+    activated = data.get("activated", [])
+    assert len(activated) == len(known_uris), (
+        f"Expected {len(known_uris)} activated, got {len(activated)}"
+    )
+    for uri in known_uris:
+        assert uri in activated
+    for uri in unknown_uris:
+        assert uri not in activated
+
+
+@_contract(
+    "ext.all-non-required",
+    "All non-required extensions activate when requested together",
+    "extensions",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    card = (await client.get("/.well-known/agent-card.json")).json()
+    exts = card.get("capabilities", {}).get("extensions", [])
+    non_required = [e for e in exts if not e.get("required")]
+    if len(non_required) < 3:
+        return
+    uris = [e["uri"] for e in non_required]
+
+    resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
+    assert resp.status_code == 200
+    activated_header = resp.headers.get(_EXT_HEADER, "")
+    for uri in uris:
+        assert uri in activated_header, f"Expected {uri} in activated header"
+
+
+@_contract(
+    "ext.artifact-extensions-exact",
+    "artifact.extensions matches the activated set exactly",
+    "extensions",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    card = (await client.get("/.well-known/agent-card.json")).json()
+    exts = card.get("capabilities", {}).get("extensions", [])
+    non_required = [e for e in exts if not e.get("required")]
+    if len(non_required) < 3:
+        return
+    uris = [e["uri"] for e in non_required[:3]]
+
+    resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
+    task = resp.json()["result"]["task"]
+    artifact_exts = set(task["artifacts"][0].get("extensions", []))
+    assert artifact_exts == set(uris), (
+        f"artifact.extensions {artifact_exts} != requested {set(uris)}"
+    )
+
+
+@_contract(
+    "ext.header-and-artifact-agree",
+    "Activated extensions in response header match artifact.extensions",
+    "extensions",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    card = (await client.get("/.well-known/agent-card.json")).json()
+    exts = card.get("capabilities", {}).get("extensions", [])
+    non_required = [e for e in exts if not e.get("required")]
+    if len(non_required) < 2:
+        return
+    uris = [e["uri"] for e in non_required[:2]]
+
+    resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
+    header_uris = {u.strip() for u in resp.headers.get(_EXT_HEADER, "").split(",") if u.strip()}
+    task = resp.json()["result"]["task"]
+    artifact_uris = set(task["artifacts"][0].get("extensions", []))
+    assert header_uris == artifact_uris, f"Header {header_uris} != artifact {artifact_uris}"
+
+
+@_contract(
+    "ext.ordering-stable",
+    "Same extension combination produces stable ordering across requests",
+    "extensions",
+)
+async def _(client: httpx.AsyncClient) -> None:
+    card = (await client.get("/.well-known/agent-card.json")).json()
+    exts = card.get("capabilities", {}).get("extensions", [])
+    non_required = [e for e in exts if not e.get("required")]
+    if len(non_required) < 3:
+        return
+    uris = [e["uri"] for e in non_required[:3]]
+
+    resp1 = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
+    resp2 = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
+    exts1 = resp1.json()["result"]["task"]["artifacts"][0].get("extensions", [])
+    exts2 = resp2.json()["result"]["task"]["artifacts"][0].get("extensions", [])
+    assert exts1 == exts2, f"Ordering unstable: {exts1} != {exts2}"
 
 
 # ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
 
 [![a2a-sdk latest on PyPI](https://img.shields.io/pypi/v/a2a-sdk.svg?logo=pypi&logoColor=white&label=a2a-sdk%20latest)](https://pypi.org/project/a2a-sdk/)
-[![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a0-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
+[![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a1-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
 
 A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
 
@@ -21,7 +21,7 @@ Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-co
 | Goal | How |
 |------|-----|
 | **Validate your client** | Point your client at the dummy server. Send commands (`echo`, `fail`, `stream`, `ask`, `ext`, ...) and assert your client handles each response shape, state transition, SSE stream, and error code correctly. |
-| **Validate your server** | Run the 41 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
+| **Validate your server** | Run the 46 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
 | **Validate your extensions** | Register your extension as a plugin via `A2APlugin` and test it end-to-end: agent card advertising, header negotiation, artifact tagging, and multi-extension activation. |
 
 ---
@@ -41,7 +41,7 @@ Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-co
   - [Testing with curl](#testing-extensions-with-curl)
   - [Testing with pytest](#testing-extensions-with-pytest)
   - [Testing with contracts](#testing-extensions-with-portable-contracts)
-- [Contract Testing](#contract-testing) -- 41 portable compliance contracts
+- [Contract Testing](#contract-testing) -- 46 portable compliance contracts
   - [Run against your server](#run-contracts-against-your-server)
   - [Run as pytest](#run-contracts-as-pytest)
   - [Contract list](#contract-list)
@@ -245,12 +245,18 @@ Client                                              Server
 |-----|----------|--------|-------------|
 | `urn:a2a:dummy:echo-metadata` | no | none | Reflects negotiation state in response artifact |
 | `urn:a2a:dummy:timestamp` | no | `{"format": "iso8601"}` | Adds server timestamp to artifacts |
+| `urn:a2a:dummy:trace-id` | no | none | Attaches a trace identifier to the response |
+| `urn:a2a:dummy:priority` | no | `{"levels": "low,normal,high"}` | Acknowledges priority level in the response |
+| `urn:a2a:dummy:locale` | no | none | Acknowledges locale preference in the response |
 | `urn:a2a:dummy:required-test` | **yes** | none | Enforced by `ext-required`. Returns -32008 if missing |
 
 Extension URIs are importable:
 
 ```python
-from dummy_a2a.agent_card import EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_REQUIRED
+from dummy_a2a.agent_card import (
+    EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_TRACE_ID,
+    EXT_PRIORITY, EXT_LOCALE, EXT_REQUIRED,
+)
 ```
 
 ### Extension plugins
@@ -482,7 +488,7 @@ for r in results:
 
 ## Contract Testing
 
-41 portable contracts that verify A2A spec compliance against **any** server.
+46 portable contracts that verify A2A spec compliance against **any** server.
 
 The dummy server is the reference implementation -- contracts are dogfooded against it in CI. Run them against your server to validate compliance.
 
@@ -547,7 +553,7 @@ results = await verify_a2a_compliance(
 Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `list-tasks` `cancel-task` `streaming` `subscribe-to-task` `content-types` `push-notifications` `errors` `extensions`
 
 <details>
-<summary><strong>All 41 contracts</strong></summary>
+<summary><strong>All 46 contracts</strong></summary>
 
 | ID | Category | What it checks |
 |----|----------|---------------|
@@ -592,6 +598,11 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | `ext.params-in-card` | extensions | Extension params accessible in card |
 | `ext.required-enforced` | extensions | Missing required extension returns -32008 |
 | `ext.required-satisfied` | extensions | Providing required extension succeeds |
+| `ext.partial-activation` | extensions | Only known extensions activate when mixed with unknown URIs |
+| `ext.all-non-required` | extensions | All non-required extensions activate when requested together |
+| `ext.artifact-extensions-exact` | extensions | `artifact.extensions` matches the activated set exactly |
+| `ext.header-and-artifact-agree` | extensions | Response header and `artifact.extensions` agree |
+| `ext.ordering-stable` | extensions | Same combination produces stable ordering across requests |
 
 </details>
 
@@ -604,8 +615,8 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | **Operations** | 11/11 -- SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask, SubscribeToTask, push notification CRUD (4), GetExtendedAgentCard |
 | **Task states** | All 8 -- submitted, working, input_required, completed, canceled, failed, rejected, auth_required |
 | **Content types** | TextPart, FilePart (raw bytes), DataPart (structured JSON) |
-| **Extensions** | 3 test extensions + plugin system for external extensions, header negotiation, artifact tagging, required enforcement (-32008), extension params |
-| **Agent card** | Public card (12 skills, 3 extensions), extended card (adds debug), streaming + push + extensions capabilities |
+| **Extensions** | 6 test extensions + plugin system for external extensions, header negotiation, artifact tagging, required enforcement (-32008), extension params, multi-extension activation |
+| **Agent card** | Public card (12 skills, 6 extensions), extended card (adds debug), streaming + push + extensions capabilities |
 
 ---
 

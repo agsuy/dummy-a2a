@@ -14,9 +14,23 @@ from a2a.types import (
 )
 from google.protobuf import struct_pb2
 
-from dummy_a2a.agent_card import EXT_ECHO_METADATA, EXT_REQUIRED, EXT_TIMESTAMP
+from dummy_a2a.agent_card import (
+    EXT_ECHO_METADATA,
+    EXT_LOCALE,
+    EXT_PRIORITY,
+    EXT_REQUIRED,
+    EXT_TIMESTAMP,
+    EXT_TRACE_ID,
+)
 
-_KNOWN_EXTENSIONS: set[str] = {EXT_ECHO_METADATA, EXT_TIMESTAMP, EXT_REQUIRED}
+_KNOWN_EXTENSIONS: set[str] = {
+    EXT_ECHO_METADATA,
+    EXT_TIMESTAMP,
+    EXT_TRACE_ID,
+    EXT_PRIORITY,
+    EXT_LOCALE,
+    EXT_REQUIRED,
+}
 
 
 def register_extension(uri: str) -> None:
