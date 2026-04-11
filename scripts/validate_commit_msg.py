@@ -32,7 +32,9 @@ HEADER_RE = re.compile(
     r"(?P<subject>.+)$"
 )
 
-MAX_HEADER_LENGTH = 72
+# Git often suggests ~72 for email-friendly logs; PR titles and squash subjects
+# are validated the same way here, so allow a bit more room.
+MAX_HEADER_LENGTH = 100
 
 
 def parse_args() -> argparse.Namespace:
