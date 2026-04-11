@@ -12,16 +12,22 @@ if TYPE_CHECKING:
 
 import httpx
 import uvicorn
-from a2a.server.apps import A2AStarletteApplication
 from a2a.server.context import ServerCallContext
-from a2a.server.events import InMemoryQueueManager
 from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.routes import (
+    create_agent_card_routes,
+    create_jsonrpc_routes,
+    create_rest_routes,
+)
 from a2a.server.tasks import (
     BasePushNotificationSender,
     InMemoryPushNotificationConfigStore,
     InMemoryTaskStore,
 )
 from a2a.types import AgentCard
+from a2a.utils.constants import DEFAULT_RPC_URL
+from starlette.applications import Starlette
+from starlette.routing import BaseRoute
 
 from dummy_a2a._utils import serve_with_signal
 from dummy_a2a.agent_card import build_agent_card, build_extended_agent_card
@@ -123,22 +129,6 @@ class DummyA2AServer:
         # Register plugins
         self._register_plugins(executor)
 
-        task_store = InMemoryTaskStore()
-        queue_manager = InMemoryQueueManager()
-        push_config_store = InMemoryPushNotificationConfigStore()
-        push_sender = BasePushNotificationSender(
-            httpx_client=httpx.AsyncClient(),
-            config_store=push_config_store,
-            context=ServerCallContext(),
-        )
-        handler = DefaultRequestHandler(
-            agent_executor=executor,
-            task_store=task_store,
-            queue_manager=queue_manager,
-            push_config_store=push_config_store,
-            push_sender=push_sender,
-        )
-
         plugin_skills = [p.skill for p in self._plugins] or None
         plugin_extensions = [p.extension for p in self._plugins] or None
 
@@ -154,12 +144,28 @@ class DummyA2AServer:
             extra_extensions=plugin_extensions,
         )
 
-        a2a_app = A2AStarletteApplication(
+        task_store = InMemoryTaskStore()
+        push_config_store = InMemoryPushNotificationConfigStore()
+        push_sender = BasePushNotificationSender(
+            httpx_client=httpx.AsyncClient(),
+            config_store=push_config_store,
+            context=ServerCallContext(),
+        )
+        handler = DefaultRequestHandler(
+            agent_executor=executor,
+            task_store=task_store,
             agent_card=self._agent_card,
-            http_handler=handler,
+            push_config_store=push_config_store,
+            push_sender=push_sender,
             extended_agent_card=self._extended_card,
         )
-        app = a2a_app.build()
+
+        routes: list[BaseRoute] = [
+            *create_agent_card_routes(self._agent_card),
+            *create_jsonrpc_routes(handler, DEFAULT_RPC_URL),
+            *create_rest_routes(handler),
+        ]
+        app = Starlette(routes=routes)
 
         config = uvicorn.Config(
             app=app,

@@ -5,6 +5,7 @@ import json
 import httpx
 import pytest
 
+from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS
 from tests.helpers import rpc_request, send, send_message_params
 
 pytestmark = pytest.mark.asyncio
@@ -20,7 +21,10 @@ async def test_stream_blocking_returns_completed(a2a_http):
 async def test_stream_sse_yields_events(a2a_url):
     """Streaming send yields SSE events with status and artifact updates."""
     events = []
-    async with httpx.AsyncClient(base_url=a2a_url) as client:
+    async with httpx.AsyncClient(
+        base_url=a2a_url,
+        headers=A2A_JSONRPC_DEFAULT_HEADERS,
+    ) as client:
         async with client.stream(
             "POST",
             "/",

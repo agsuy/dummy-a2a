@@ -9,6 +9,7 @@ from a2a.types import AgentExtension, AgentSkill, TaskState, TaskStatus, TaskSta
 from a2a.utils import new_text_artifact
 
 from dummy_a2a import A2APlugin, DummyA2AServer
+from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS
 from dummy_a2a.agent_card import EXT_ECHO_METADATA
 from dummy_a2a.skills import SkillRouter
 from tests.helpers import rpc_request, send, send_message_params
@@ -80,7 +81,10 @@ async def test_plugin_extension_in_agent_card():
     async with DummyA2AServer(port=0, extensions=[plugin]) as server:
         import httpx
 
-        async with httpx.AsyncClient(base_url=server.url) as client:
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             resp = await client.get("/.well-known/agent-card.json")
             card = resp.json()
             uris = [e["uri"] for e in card["capabilities"]["extensions"]]
@@ -93,7 +97,10 @@ async def test_plugin_skill_in_agent_card():
     async with DummyA2AServer(port=0, extensions=[plugin]) as server:
         import httpx
 
-        async with httpx.AsyncClient(base_url=server.url) as client:
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             resp = await client.get("/.well-known/agent-card.json")
             card = resp.json()
             skill_ids = [s["id"] for s in card["skills"]]
@@ -111,7 +118,10 @@ async def test_plugin_command_routes_to_handler():
     async with DummyA2AServer(port=0, extensions=[plugin]) as server:
         import httpx
 
-        async with httpx.AsyncClient(base_url=server.url) as client:
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             task = await send(client, "plugtest hello")
             assert task["status"]["state"] == "TASK_STATE_COMPLETED"
             assert task["artifacts"][0]["parts"][0]["text"] == "plugin response"
@@ -128,7 +138,10 @@ async def test_ext_activates_plugin_extension():
     async with DummyA2AServer(port=0, extensions=[plugin]) as server:
         import httpx
 
-        async with httpx.AsyncClient(base_url=server.url) as client:
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             resp = await client.post(
                 "/",
                 json=rpc_request("SendMessage", send_message_params("ext")),
@@ -145,7 +158,10 @@ async def test_ext_artifact_tagged_with_plugin_extension():
     async with DummyA2AServer(port=0, extensions=[plugin]) as server:
         import httpx
 
-        async with httpx.AsyncClient(base_url=server.url) as client:
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             resp = await client.post(
                 "/",
                 json=rpc_request("SendMessage", send_message_params("ext")),
@@ -198,6 +214,9 @@ async def test_no_plugins_works():
     async with DummyA2AServer(port=0) as server:
         import httpx
 
-        async with httpx.AsyncClient(base_url=server.url) as client:
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
             task = await send(client, "echo hello")
             assert task["status"]["state"] == "TASK_STATE_COMPLETED"

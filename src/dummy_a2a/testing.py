@@ -21,7 +21,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from dummy_a2a._utils import serve_with_signal
+from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS, serve_with_signal
 from dummy_a2a.server import DummyA2AServer
 
 
@@ -130,7 +130,10 @@ async def a2a_url(a2a_server: DummyA2AServer) -> str:
 @pytest_asyncio.fixture
 async def a2a_http(a2a_url: str) -> AsyncIterator[httpx.AsyncClient]:
     """HTTP client with base_url pointed at the test server."""
-    async with httpx.AsyncClient(base_url=a2a_url) as client:
+    async with httpx.AsyncClient(
+        base_url=a2a_url,
+        headers=A2A_JSONRPC_DEFAULT_HEADERS,
+    ) as client:
         yield client
 
 
@@ -161,5 +164,9 @@ async def a2a_https_url(a2a_https_server: DummyA2AServer) -> str:
 @pytest_asyncio.fixture
 async def a2a_https_http(a2a_https_url: str) -> AsyncIterator[httpx.AsyncClient]:
     """HTTP client for the HTTPS test server (TLS verification disabled)."""
-    async with httpx.AsyncClient(base_url=a2a_https_url, verify=False) as client:
+    async with httpx.AsyncClient(
+        base_url=a2a_https_url,
+        verify=False,
+        headers=A2A_JSONRPC_DEFAULT_HEADERS,
+    ) as client:
         yield client

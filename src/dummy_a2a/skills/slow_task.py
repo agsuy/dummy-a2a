@@ -35,7 +35,8 @@ class SlowTaskSkill:
 
         for i in range(STEPS):
             await asyncio.sleep(STEP_DELAY)
-            if event_queue.is_closed():
+            is_closed = getattr(event_queue, "is_closed", None)
+            if callable(is_closed) and is_closed():
                 return
             await event_queue.enqueue_event(
                 TaskStatusUpdateEvent(
