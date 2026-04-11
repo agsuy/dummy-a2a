@@ -2,6 +2,48 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-04-11)
+
+### Bug Fixes
+
+- **ci**: Raise commit/PR title header limit to 100 chars
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+- **client**: Default A2A-Version 1.0 headers for JSON-RPC clients
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+- **server**: Build Starlette app with route helpers for a2a-sdk 1.0
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+### Chores
+
+- **deps**: Bump a2a-sdk to 1.0.0a1 ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+### Documentation
+
+- **readme**: Update contract count and extension catalog
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+### Features
+
+- **contracts**: Add multi-extension activation compliance checks
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+- **extensions**: Add trace-id, priority, and locale test extensions
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+- **extensions**: Multi-extension contracts and trace, priority, locale URIs
+  ([#18](https://github.com/agsuy/dummy-a2a/pull/18),
+  [`22f7cf1`](https://github.com/agsuy/dummy-a2a/commit/22f7cf1cdf0f2ccede59b7003e2778a0e6e30bf3))
+
+
 ## v0.5.0 (2026-04-09)
 
 ### Continuous Integration
