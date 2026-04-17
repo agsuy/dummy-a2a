@@ -624,7 +624,7 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 
 ```bash
 uv sync --dev
-uv run pytest tests/ -v        # 114 tests
+uv run pytest tests/ -v
 uv run ruff check src/ tests/  # lint
 uv run pyright                  # type check
 ```

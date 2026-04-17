@@ -92,6 +92,18 @@ async def test_extended_card_has_all_required_fields(a2a_http):
     assert "skills" in card
 
 
+async def test_agent_card_url_matches_server_url(a2a_server, a2a_http):
+    resp = await a2a_http.get("/.well-known/agent-card.json")
+    card_url = resp.json()["supportedInterfaces"][0]["url"]
+    assert card_url == a2a_server.url
+
+
+async def test_extended_card_url_matches_server_url(a2a_server, a2a_http):
+    resp = await rpc_call(a2a_http, "GetExtendedAgentCard", {})
+    card_url = resp["result"]["supportedInterfaces"][0]["url"]
+    assert card_url == a2a_server.url
+
+
 async def test_agent_card_interface_has_protocol_version(a2a_http):
     resp = await a2a_http.get("/.well-known/agent-card.json")
     interfaces = resp.json()["supportedInterfaces"]

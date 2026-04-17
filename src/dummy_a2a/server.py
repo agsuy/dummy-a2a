@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Self
@@ -95,6 +96,12 @@ class DummyA2AServer:
             raise RuntimeError("Server not started")
         return self._agent_card
 
+    def _fix_card_url(self, card: AgentCard) -> AgentCard:
+        """Return a copy of *card* with the interface URL set to the actual server URL."""
+        fixed = copy.deepcopy(card)
+        fixed.supported_interfaces[0].url = self.url
+        return fixed
+
     def _register_plugins(self, executor: DummyAgentExecutor) -> None:
         """Register plugin skills and extensions, checking for URI conflicts."""
         from dummy_a2a.agent_card import EXTENSIONS
@@ -141,6 +148,7 @@ class DummyA2AServer:
         self._extended_card = build_extended_agent_card(
             self._host,
             self._port,
+            extra_skills=plugin_skills,
             extra_extensions=plugin_extensions,
         )
 
@@ -158,10 +166,11 @@ class DummyA2AServer:
             push_config_store=push_config_store,
             push_sender=push_sender,
             extended_agent_card=self._extended_card,
+            extended_card_modifier=lambda card, _ctx: self._fix_card_url(card),
         )
 
         routes: list[BaseRoute] = [
-            *create_agent_card_routes(self._agent_card),
+            *create_agent_card_routes(self._agent_card, card_modifier=self._fix_card_url),
             *create_jsonrpc_routes(handler, DEFAULT_RPC_URL),
             *create_rest_routes(handler),
         ]
@@ -179,6 +188,10 @@ class DummyA2AServer:
 
         self._serve_task = asyncio.create_task(serve_with_signal(self._server, self._started))
         await self._started.wait()
+
+        # Update stored cards now that the actual port and scheme are known.
+        self._agent_card = self._fix_card_url(self._agent_card)
+        self._extended_card = self._fix_card_url(self._extended_card)
 
     async def stop(self) -> None:
         """Stop the server gracefully."""

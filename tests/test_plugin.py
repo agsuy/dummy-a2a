@@ -12,7 +12,7 @@ from dummy_a2a import A2APlugin, DummyA2AServer
 from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS
 from dummy_a2a.agent_card import EXT_ECHO_METADATA
 from dummy_a2a.skills import SkillRouter
-from tests.helpers import rpc_request, send, send_message_params
+from tests.helpers import rpc_call, rpc_request, send, send_message_params
 
 pytestmark = pytest.mark.asyncio
 
@@ -105,6 +105,22 @@ async def test_plugin_skill_in_agent_card():
             card = resp.json()
             skill_ids = [s["id"] for s in card["skills"]]
             assert "plugtest" in skill_ids
+
+
+async def test_plugin_skill_in_extended_card():
+    """Plugin skill appears in the extended card alongside debug."""
+    plugin = _make_plugin()
+    async with DummyA2AServer(port=0, extensions=[plugin]) as server:
+        import httpx
+
+        async with httpx.AsyncClient(
+            base_url=server.url,
+            headers=A2A_JSONRPC_DEFAULT_HEADERS,
+        ) as client:
+            resp = await rpc_call(client, "GetExtendedAgentCard", {})
+            skill_ids = [s["id"] for s in resp["result"]["skills"]]
+            assert "plugtest" in skill_ids
+            assert "debug" in skill_ids
 
 
 # ---------------------------------------------------------------------------

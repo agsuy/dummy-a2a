@@ -17,6 +17,13 @@ async def test_https_echo_works(a2a_https_http):
     assert any("hello tls" in p.get("text", "") for a in task["artifacts"] for p in a["parts"])
 
 
+async def test_https_card_url_is_https(a2a_https_server, a2a_https_http):
+    resp = await a2a_https_http.get("/.well-known/agent-card.json")
+    card_url = resp.json()["supportedInterfaces"][0]["url"]
+    assert card_url.startswith("https://")
+    assert card_url == a2a_https_server.url
+
+
 async def test_https_agent_card(a2a_https_http):
     resp = await a2a_https_http.get("/.well-known/agent-card.json")
     assert resp.status_code == 200

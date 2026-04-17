@@ -225,9 +225,13 @@ def build_extended_agent_card(
     host: str,
     port: int,
     *,
+    extra_skills: list[AgentSkill] | None = None,
     extra_extensions: list[AgentExtension] | None = None,
 ) -> AgentCard:
     """Build the extended agent card (includes debug skill)."""
     return build_agent_card(
-        host, port, extra_skills=[DEBUG_SKILL], extra_extensions=extra_extensions
+        host,
+        port,
+        extra_skills=[DEBUG_SKILL] + (extra_skills or []),
+        extra_extensions=extra_extensions,
     )
