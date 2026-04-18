@@ -614,7 +614,7 @@ async def _(client: httpx.AsyncClient) -> None:
 
 # --- Extensions ---
 
-_EXT_HEADER = "X-A2A-Extensions"
+_EXT_HEADER = "A2A-Extensions"
 
 
 @_contract(
@@ -633,7 +633,7 @@ async def _(client: httpx.AsyncClient) -> None:
 
 @_contract(
     "ext.negotiation-activates",
-    "Requesting a known extension activates it (response header)",
+    "Requesting a known extension activates it (artifact.extensions)",
     "extensions",
 )
 async def _(client: httpx.AsyncClient) -> None:
@@ -646,8 +646,9 @@ async def _(client: httpx.AsyncClient) -> None:
 
     resp = await _send_with_headers(client, "ext", {_EXT_HEADER: uri})
     assert resp.status_code == 200
-    activated = resp.headers.get(_EXT_HEADER, "")
-    assert uri in activated, f"Expected {uri} in response header, got: {activated}"
+    task = resp.json()["result"]["task"]
+    artifact_exts = task["artifacts"][0].get("extensions", [])
+    assert uri in artifact_exts, f"Expected {uri} in artifact extensions, got: {artifact_exts}"
 
 
 @_contract(
@@ -696,9 +697,10 @@ async def _(client: httpx.AsyncClient) -> None:
     uris = [e["uri"] for e in non_required[:3]]
 
     resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
-    activated = resp.headers.get(_EXT_HEADER, "")
+    task = resp.json()["result"]["task"]
+    artifact_exts = task["artifacts"][0].get("extensions", [])
     for uri in uris:
-        assert uri in activated, f"Expected {uri} in activated extensions"
+        assert uri in artifact_exts, f"Expected {uri} in artifact extensions"
 
 
 @_contract(
@@ -750,7 +752,8 @@ async def _(client: httpx.AsyncClient) -> None:
     body = resp.json()
     assert "result" in body, f"Expected result, got: {body.get('error')}"
     assert body["result"]["task"]["status"]["state"] == "TASK_STATE_COMPLETED"
-    assert uri in resp.headers.get(_EXT_HEADER, "")
+    artifact_exts = body["result"]["task"]["artifacts"][0].get("extensions", [])
+    assert uri in artifact_exts
 
 
 @_contract(
@@ -799,9 +802,10 @@ async def _(client: httpx.AsyncClient) -> None:
 
     resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
     assert resp.status_code == 200
-    activated_header = resp.headers.get(_EXT_HEADER, "")
+    task = resp.json()["result"]["task"]
+    artifact_exts = task["artifacts"][0].get("extensions", [])
     for uri in uris:
-        assert uri in activated_header, f"Expected {uri} in activated header"
+        assert uri in artifact_exts, f"Expected {uri} in artifact extensions"
 
 
 @_contract(
@@ -827,7 +831,7 @@ async def _(client: httpx.AsyncClient) -> None:
 
 @_contract(
     "ext.header-and-artifact-agree",
-    "Activated extensions in response header match artifact.extensions",
+    "Activated extensions in artifact match the requested known extensions",
     "extensions",
 )
 async def _(client: httpx.AsyncClient) -> None:
@@ -839,10 +843,9 @@ async def _(client: httpx.AsyncClient) -> None:
     uris = [e["uri"] for e in non_required[:2]]
 
     resp = await _send_with_headers(client, "ext", {_EXT_HEADER: ", ".join(uris)})
-    header_uris = {u.strip() for u in resp.headers.get(_EXT_HEADER, "").split(",") if u.strip()}
     task = resp.json()["result"]["task"]
     artifact_uris = set(task["artifacts"][0].get("extensions", []))
-    assert header_uris == artifact_uris, f"Header {header_uris} != artifact {artifact_uris}"
+    assert artifact_uris == set(uris), f"Artifact {artifact_uris} != requested {set(uris)}"
 
 
 @_contract(

@@ -2,7 +2,7 @@
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
-from a2a.types import TaskState, TaskStatus, TaskStatusUpdateEvent
+from a2a.types import Task, TaskState, TaskStatus, TaskStatusUpdateEvent
 
 from dummy_a2a.skills import SkillRouter
 from dummy_a2a.skills.base import SkillHandler
@@ -48,11 +48,25 @@ class DummyAgentExecutor(AgentExecutor):
         """Register a plugin skill handler."""
         self._router.register(command, handler)
 
+    def _init_task(self, context: RequestContext) -> Task:
+        """Build an initial Task with the user message in history."""
+        history = [context.message] if context.message else []
+        return Task(
+            id=context.task_id,
+            context_id=context.context_id,
+            status=TaskStatus(state=TaskState.TASK_STATE_SUBMITTED),
+            history=history,
+        )
+
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        if context.current_task is None:
+            await event_queue.enqueue_event(self._init_task(context))
         handler = self._router.resolve(context)
         await handler.handle(context, event_queue)
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        if context.current_task is None:
+            await event_queue.enqueue_event(self._init_task(context))
         await event_queue.enqueue_event(
             TaskStatusUpdateEvent(
                 task_id=context.task_id,

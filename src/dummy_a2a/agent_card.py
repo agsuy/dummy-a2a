@@ -164,7 +164,7 @@ SKILLS: list[AgentSkill] = [
         name="Required Extension Test",
         description=(
             "Tests required extension enforcement. Returns -32008 if "
-            "urn:a2a:dummy:required-test is not in X-A2A-Extensions header."
+            "urn:a2a:dummy:required-test is not in A2A-Extensions header."
         ),
         tags=["test", "extension", "required"],
         examples=["ext-required"],
@@ -225,9 +225,13 @@ def build_extended_agent_card(
     host: str,
     port: int,
     *,
+    extra_skills: list[AgentSkill] | None = None,
     extra_extensions: list[AgentExtension] | None = None,
 ) -> AgentCard:
     """Build the extended agent card (includes debug skill)."""
     return build_agent_card(
-        host, port, extra_skills=[DEBUG_SKILL], extra_extensions=extra_extensions
+        host,
+        port,
+        extra_skills=[DEBUG_SKILL] + (extra_skills or []),
+        extra_extensions=extra_extensions,
     )
