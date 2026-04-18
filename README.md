@@ -223,21 +223,20 @@ The dummy server implements A2A 1.0 extension negotiation for testing extension 
 ```
 Client                                              Server
   |                                                    |
-  |  POST / + X-A2A-Extensions: urn:a2a:dummy:...      |
+  |  POST / + A2A-Extensions: urn:a2a:dummy:...      |
   | -------------------------------------------------> |
   |                                                    | checks context.requested_extensions
   |                                                    | activates matching extensions
   |                                                    | tags artifacts with extension URIs
-  |  Response + X-A2A-Extensions: urn:a2a:dummy:...    |
+  |  Response with artifact.extensions: [...]          |
   | <------------------------------------------------- |
   |                                                    |
 ```
 
 1. Agent card advertises extensions in `capabilities.extensions`
-2. Client sends `X-A2A-Extensions` header with comma-separated URIs
+2. Client sends `A2A-Extensions` header with comma-separated URIs
 3. Server activates recognized extensions, ignores unknown ones
-4. Response header echoes which extensions were activated
-5. Artifacts are tagged via `artifact.extensions`
+4. Activated extensions are listed in `artifact.extensions`
 
 ### Registered extensions
 
@@ -285,7 +284,7 @@ from a2a.types import (
     TaskStatus,
     TaskStatusUpdateEvent,
 )
-from a2a.utils import new_text_artifact
+from a2a.helpers import new_text_artifact
 
 from dummy_a2a import A2APlugin, DummyA2AServer
 
@@ -348,7 +347,7 @@ async with DummyA2AServer(port=0, extensions=[my_plugin]) as server:
     print(server.url)
     # Agent card now lists your extension and skill
     # "myext hello" routes to MyExtensionSkill
-    # "ext" with X-A2A-Extensions header activates your extension
+    # "ext" with A2A-Extensions header activates your extension
 ```
 
 **Use in pytest:**
@@ -378,14 +377,12 @@ async def test_my_extension(server):
             "method": "SendMessage",
             "params": {"message": {"messageId": "1", "role": 1,
                 "parts": [{"text": "myext hello"}]}}
-        }, headers={"X-A2A-Extensions": MY_EXT_URI})
+        }, headers={"A2A-Extensions": MY_EXT_URI})
 
-        # Extension activated in response header
-        assert MY_EXT_URI in resp.headers.get("X-A2A-Extensions", "")
-
-        # Task completed
+        # Task completed with extension activated
         task = resp.json()["result"]["task"]
         assert task["status"]["state"] == "TASK_STATE_COMPLETED"
+        assert MY_EXT_URI in task["artifacts"][0].get("extensions", [])
 ```
 
 **Multiple plugins:**
@@ -422,7 +419,7 @@ curl -s http://localhost:9000/.well-known/agent-card.json | jq '.capabilities.ex
 # Negotiate extensions
 curl -s http://localhost:9000/ \
   -H 'Content-Type: application/json' \
-  -H 'X-A2A-Extensions: urn:a2a:dummy:echo-metadata, urn:a2a:dummy:timestamp' \
+  -H 'A2A-Extensions: urn:a2a:dummy:echo-metadata, urn:a2a:dummy:timestamp' \
   -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext"}]}}}' \
   -D - 2>/dev/null | head -20
 
@@ -434,7 +431,7 @@ curl -s http://localhost:9000/ \
 # Satisfy the required extension
 curl -s http://localhost:9000/ \
   -H 'Content-Type: application/json' \
-  -H 'X-A2A-Extensions: urn:a2a:dummy:required-test' \
+  -H 'A2A-Extensions: urn:a2a:dummy:required-test' \
   -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext-required"}]}}}'
 ```
 
@@ -452,9 +449,7 @@ async def test_extension_negotiation(a2a_url):
             "method": "SendMessage",
             "params": {"message": {"messageId": "1", "role": 1,
                 "parts": [{"text": "ext"}]}}
-        }, headers={"X-A2A-Extensions": "urn:a2a:dummy:echo-metadata"})
-
-        assert "urn:a2a:dummy:echo-metadata" in resp.headers["X-A2A-Extensions"]
+        }, headers={"A2A-Extensions": "urn:a2a:dummy:echo-metadata"})
 
         task = resp.json()["result"]["task"]
         assert "urn:a2a:dummy:echo-metadata" in task["artifacts"][0]["extensions"]
