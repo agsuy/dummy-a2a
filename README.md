@@ -1,4 +1,4 @@
-# dummy-a2a
+# dummy-a2a — A2A compliance in a box
 
 [![CI](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml/badge.svg)](https://github.com/agsuy/dummy-a2a/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/dummy-a2a.svg?logo=pypi&logoColor=white&label=version)](https://pypi.org/project/dummy-a2a/)
@@ -8,13 +8,30 @@
 [![a2a-sdk latest on PyPI](https://img.shields.io/pypi/v/a2a-sdk.svg?logo=pypi&logoColor=white&label=a2a-sdk%20latest)](https://pypi.org/project/a2a-sdk/)
 [![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a3-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
 
-A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
+`dummy-a2a` is a programmable test agent for the [A2A protocol](https://google.github.io/A2A/). Send it a command keyword, get spec-compliant behavior back — every task state, every content type, every error code, every extension flow.
 
-Use it to **test your A2A client**, **validate spec compliance**, **test extension plugins**, or **run portable contracts** against any server.
+Ship it as a **test double** for your client, point its **46 portable contracts** at your server, or plug in your own extension and validate it end-to-end. One `pip install`, zero config.
 
-The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin. Covers **11/11 operations**, **all 8 task states**, **3 content types**, and **full extension negotiation**.
+```bash
+pip install dummy-a2a
+```
 
-Codebase is intentionally small (~2300 LOC) and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When and if spec changes, the blast radius is typically one skill or one contract and easy to update.
+```python
+async with DummyA2AServer(port=0) as server:
+    # server.url → http://127.0.0.1:<random>
+    # test your client against every A2A edge case
+```
+
+```python
+# or validate any A2A server with portable contracts
+results = await verify_a2a_compliance("http://your-server:9000")
+```
+
+> **~2 300 LOC · 11/11 operations · all 8 task states · 3 content types · 6 extensions + plugin system · 46 compliance contracts**
+
+The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin.
+
+Codebase is intentionally small and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When the spec changes, the blast radius is typically one skill or one contract.
 
 ### What you can validate
 
@@ -367,17 +384,24 @@ async def test_my_extension(server):
         uris = [e["uri"] for e in card["capabilities"]["extensions"]]
         assert MY_EXT_URI in uris
 
-        # Send command with extension header
+        # Plugin command routes to your handler
         resp = await client.post("/", json={
             "jsonrpc": "2.0", "id": 1,
             "method": "SendMessage",
             "params": {"message": {"messageId": "1", "role": 1,
                 "parts": [{"text": "myext hello"}]}}
-        }, headers={"A2A-Extensions": MY_EXT_URI})
-
-        # Task completed with extension activated
+        })
         task = resp.json()["result"]["task"]
         assert task["status"]["state"] == "TASK_STATE_COMPLETED"
+
+        # ext skill activates your extension during negotiation
+        resp = await client.post("/", json={
+            "jsonrpc": "2.0", "id": 2,
+            "method": "SendMessage",
+            "params": {"message": {"messageId": "2", "role": 1,
+                "parts": [{"text": "ext"}]}}
+        }, headers={"A2A-Extensions": MY_EXT_URI})
+        task = resp.json()["result"]["task"]
         assert MY_EXT_URI in task["artifacts"][0].get("extensions", [])
 ```
 
