@@ -46,6 +46,11 @@ dummy_a2a = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+filterwarnings = [
+    # Upstream a2a-sdk: ActiveTask coroutines race during teardown under coverage.
+    # Tracked against a2a-sdk 1.0.0a3; remove once the SDK fixes cleanup.
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.coverage.run]
 source = ["dummy_a2a"]
