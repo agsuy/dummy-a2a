@@ -21,8 +21,6 @@ class ExtRequiredSkill:
         if EXT_REQUIRED not in context.requested_extensions:
             raise ExtensionSupportRequiredError()
 
-        context.add_activated_extension(EXT_REQUIRED)
-
         data = struct_pb2.Value()
         data.struct_value.fields["extension"].string_value = EXT_REQUIRED
         data.struct_value.fields["status"].string_value = "satisfied"

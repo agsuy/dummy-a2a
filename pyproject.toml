@@ -18,7 +18,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "a2a-sdk[http-server,sqlite]==1.0.0a1",
+    "a2a-sdk[grpc,http-server,sqlite]==1.0.0a3",
     "httpx>=0.28",
     "packaging>=23.2",
     "uvicorn>=0.34",

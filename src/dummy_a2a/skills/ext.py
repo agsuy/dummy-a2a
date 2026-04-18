@@ -46,7 +46,6 @@ class ExtSkill:
         # Activate every requested extension we recognise
         for uri in requested:
             if uri in _KNOWN_EXTENSIONS:
-                context.add_activated_extension(uri)
                 activated.append(uri)
 
         # Build response data

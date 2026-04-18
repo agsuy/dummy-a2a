@@ -2,6 +2,7 @@
 
 import asyncio
 
+from a2a.helpers import new_text_artifact
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import (
@@ -12,7 +13,6 @@ from a2a.types import (
     TaskStatus,
     TaskStatusUpdateEvent,
 )
-from a2a.utils import new_text_artifact
 from google.protobuf import struct_pb2
 
 CHUNK_DELAY = 0.05

@@ -1,5 +1,6 @@
 """Multi-turn skill -- asks for input, then completes."""
 
+from a2a.helpers import new_text_artifact, new_text_message
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import (
@@ -8,7 +9,6 @@ from a2a.types import (
     TaskStatus,
     TaskStatusUpdateEvent,
 )
-from a2a.utils import new_agent_text_message, new_text_artifact
 
 
 class MultiTurnSkill:
@@ -27,7 +27,7 @@ class MultiTurnSkill:
                     context_id=context.context_id,
                     status=TaskStatus(
                         state=TaskState.TASK_STATE_INPUT_REQUIRED,
-                        message=new_agent_text_message(
+                        message=new_text_message(
                             text="What is your name?",
                             context_id=context.context_id,
                             task_id=context.task_id,
