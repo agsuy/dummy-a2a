@@ -8,7 +8,7 @@
 [![a2a-sdk latest on PyPI](https://img.shields.io/pypi/v/a2a-sdk.svg?logo=pypi&logoColor=white&label=a2a-sdk%20latest)](https://pypi.org/project/a2a-sdk/)
 [![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.1-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
 
-`dummy-a2a` is a programmable test agent for the [A2A protocol](https://google.github.io/A2A/). Send it a command keyword, get spec-compliant behavior back. 
+`dummy-a2a` is a programmable test agent for the [A2A protocol](https://google.github.io/A2A/). Send it a command keyword, get spec-compliant behavior back.
 Every task state, every content type, every error code, every extension flow.
 
 Ship it as a **test double** for your client, point its **46 portable contracts** at your server, or plug in your own extension and validate it end-to-end. One `pip install`, zero config.
