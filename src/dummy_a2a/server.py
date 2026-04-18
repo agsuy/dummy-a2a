@@ -96,7 +96,7 @@ class DummyA2AServer:
             raise RuntimeError("Server not started")
         return self._agent_card
 
-    def _fix_card_url(self, card: AgentCard) -> AgentCard:
+    async def _fix_card_url(self, card: AgentCard) -> AgentCard:
         """Return a copy of *card* with the interface URL set to the actual server URL."""
         fixed = copy.deepcopy(card)
         fixed.supported_interfaces[0].url = self.url
@@ -190,8 +190,8 @@ class DummyA2AServer:
         await self._started.wait()
 
         # Update stored cards now that the actual port and scheme are known.
-        self._agent_card = self._fix_card_url(self._agent_card)
-        self._extended_card = self._fix_card_url(self._extended_card)
+        self._agent_card = await self._fix_card_url(self._agent_card)
+        self._extended_card = await self._fix_card_url(self._extended_card)
 
     async def stop(self) -> None:
         """Stop the server gracefully."""
