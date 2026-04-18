@@ -105,7 +105,6 @@ class DummyA2AServer:
     def _register_plugins(self, executor: DummyAgentExecutor) -> None:
         """Register plugin skills and extensions, checking for URI conflicts."""
         from dummy_a2a.agent_card import EXTENSIONS
-        from dummy_a2a.skills.ext import register_extension
 
         seen_uris: set[str] = {ext.uri for ext in EXTENSIONS}
         for plugin in self._plugins:
@@ -114,7 +113,6 @@ class DummyA2AServer:
                 raise ValueError(f"Duplicate extension URI: {uri}")
             seen_uris.add(uri)
             executor.register_plugin(plugin.command, plugin.handler)
-            register_extension(uri)
 
     async def start(self) -> None:
         """Start the server in the background."""
@@ -131,9 +129,13 @@ class DummyA2AServer:
             logging.getLogger("a2a").setLevel(self._sdk_log_level)
 
         executor = DummyAgentExecutor()
-        executor.register_all_skills()
 
-        # Register plugins
+        # Collect plugin extension URIs before registering skills so ExtSkill
+        # can be constructed with the correct instance-scoped known set.
+        plugin_extension_uris = {p.extension.uri for p in self._plugins} or None
+        executor.register_all_skills(plugin_extension_uris=plugin_extension_uris)
+
+        # Register plugin skill handlers (URI conflict check only)
         self._register_plugins(executor)
 
         plugin_skills = [p.skill for p in self._plugins] or None
