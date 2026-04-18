@@ -14,7 +14,7 @@ from tests.helpers import rpc_request, send_message_params
 
 pytestmark = pytest.mark.asyncio
 
-EXTENSION_HEADER = "X-A2A-Extensions"
+EXTENSION_HEADER = "A2A-Extensions"
 
 
 async def test_ext_activates_requested_extensions(a2a_http):
@@ -25,10 +25,10 @@ async def test_ext_activates_requested_extensions(a2a_http):
         headers={EXTENSION_HEADER: f"{EXT_ECHO_METADATA}, {EXT_TIMESTAMP}"},
     )
     assert resp.status_code == 200
-    # Response header should echo activated extensions
-    activated_header = resp.headers.get(EXTENSION_HEADER, "")
-    assert EXT_ECHO_METADATA in activated_header
-    assert EXT_TIMESTAMP in activated_header
+    task = resp.json()["result"]["task"]
+    artifact_exts = task["artifacts"][0].get("extensions", [])
+    assert EXT_ECHO_METADATA in artifact_exts
+    assert EXT_TIMESTAMP in artifact_exts
 
 
 async def test_ext_artifact_tagged_with_extensions(a2a_http):
@@ -120,8 +120,6 @@ async def test_ext_required_satisfied_completes(a2a_http):
     assert "result" in body
     task = body["result"]["task"]
     assert task["status"]["state"] == "TASK_STATE_COMPLETED"
-    # Response header confirms activation
-    assert EXT_REQUIRED in resp.headers.get(EXTENSION_HEADER, "")
     # Artifact tagged with extension
     assert EXT_REQUIRED in task["artifacts"][0].get("extensions", [])
 
@@ -175,9 +173,10 @@ async def test_ext_activates_three_plus_extensions(a2a_http):
         headers={EXTENSION_HEADER: ", ".join(ALL_NON_REQUIRED)},
     )
     assert resp.status_code == 200
-    activated_header = resp.headers.get(EXTENSION_HEADER, "")
+    task = resp.json()["result"]["task"]
+    artifact_exts = task["artifacts"][0].get("extensions", [])
     for uri in ALL_NON_REQUIRED:
-        assert uri in activated_header, f"Expected {uri} in activated header"
+        assert uri in artifact_exts, f"Expected {uri} in artifact extensions"
 
 
 async def test_ext_partial_activation_mixed(a2a_http):
@@ -214,20 +213,19 @@ async def test_ext_artifact_extensions_exact_match(a2a_http):
     )
 
 
-async def test_ext_header_matches_artifact(a2a_http):
-    """Activated extensions in response header match artifact.extensions."""
+async def test_ext_activated_matches_requested(a2a_http):
+    """Activated extensions in artifact match the known requested extensions."""
     requested = [EXT_ECHO_METADATA, EXT_PRIORITY]
     resp = await a2a_http.post(
         "/",
         json=rpc_request("SendMessage", send_message_params("ext")),
         headers={EXTENSION_HEADER: ", ".join(requested)},
     )
-    header_uris = {
-        u.strip() for u in resp.headers.get(EXTENSION_HEADER, "").split(",") if u.strip()
-    }
     task = resp.json()["result"]["task"]
-    artifact_uris = set(task["artifacts"][0].get("extensions", []))
-    assert header_uris == artifact_uris, f"Header {header_uris} != artifact {artifact_uris}"
+    artifact_exts = set(task["artifacts"][0].get("extensions", []))
+    assert artifact_exts == set(requested), (
+        f"Artifact {artifact_exts} != requested {set(requested)}"
+    )
 
 
 async def test_ext_ordering_stable(a2a_http):

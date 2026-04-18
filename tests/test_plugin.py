@@ -3,10 +3,10 @@
 import logging
 
 import pytest
+from a2a.helpers import new_text_artifact
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import AgentExtension, AgentSkill, TaskState, TaskStatus, TaskStatusUpdateEvent
-from a2a.utils import new_text_artifact
 
 from dummy_a2a import A2APlugin, DummyA2AServer
 from dummy_a2a._utils import A2A_JSONRPC_DEFAULT_HEADERS
@@ -17,7 +17,7 @@ from tests.helpers import rpc_call, rpc_request, send, send_message_params
 pytestmark = pytest.mark.asyncio
 
 PLUGIN_URI = "urn:a2a:test:plugin-ext"
-EXTENSION_HEADER = "X-A2A-Extensions"
+EXTENSION_HEADER = "A2A-Extensions"
 
 
 class StubSkill:
@@ -164,8 +164,9 @@ async def test_ext_activates_plugin_extension():
                 headers={EXTENSION_HEADER: PLUGIN_URI},
             )
             assert resp.status_code == 200
-            activated = resp.headers.get(EXTENSION_HEADER, "")
-            assert PLUGIN_URI in activated
+            task = resp.json()["result"]["task"]
+            artifact_exts = task["artifacts"][0].get("extensions", [])
+            assert PLUGIN_URI in artifact_exts
 
 
 async def test_ext_artifact_tagged_with_plugin_extension():

@@ -164,7 +164,7 @@ SKILLS: list[AgentSkill] = [
         name="Required Extension Test",
         description=(
             "Tests required extension enforcement. Returns -32008 if "
-            "urn:a2a:dummy:required-test is not in X-A2A-Extensions header."
+            "urn:a2a:dummy:required-test is not in A2A-Extensions header."
         ),
         tags=["test", "extension", "required"],
         examples=["ext-required"],
