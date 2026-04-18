@@ -2,6 +2,44 @@
 
 <!-- version list -->
 
+## v0.6.1 (2026-04-18)
+
+### Bug Fixes
+
+- **agent-card**: Align advertised URL with server + ignore .DS_Store
+  ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+- **agent-card**: Ensure advertised URL matches running server
+  ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+- **contracts**: Align extension checks with A2A-Extensions and artifacts
+  ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+- **executor**: Enqueue initial task when current_task is missing
+  ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+- **server**: Make agent card URL fix async ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+### Chores
+
+- **deps**: Bump a2a-sdk to 1.0.0a3 ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+- **git**: Ignore .DS_Store ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+### Refactoring
+
+- **skills**: Use a2a.helpers and drop add_activated_extension
+  ([#19](https://github.com/agsuy/dummy-a2a/pull/19),
+  [`7c76df1`](https://github.com/agsuy/dummy-a2a/commit/7c76df1ed634bbebb3a5bf021a39cd8e2a596145))
+
+
 ## v0.6.0 (2026-04-11)
 
 ### Bug Fixes
