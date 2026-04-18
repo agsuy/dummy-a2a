@@ -23,29 +23,31 @@ from dummy_a2a.agent_card import (
     EXT_TRACE_ID,
 )
 
-_KNOWN_EXTENSIONS: set[str] = {
-    EXT_ECHO_METADATA,
-    EXT_TIMESTAMP,
-    EXT_TRACE_ID,
-    EXT_PRIORITY,
-    EXT_LOCALE,
-    EXT_REQUIRED,
-}
-
-
-def register_extension(uri: str) -> None:
-    """Register a plugin extension URI so the ext skill can activate it."""
-    _KNOWN_EXTENSIONS.add(uri)
+_BUILTIN_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        EXT_ECHO_METADATA,
+        EXT_TIMESTAMP,
+        EXT_TRACE_ID,
+        EXT_PRIORITY,
+        EXT_LOCALE,
+        EXT_REQUIRED,
+    }
+)
 
 
 class ExtSkill:
+    def __init__(self, extra_extensions: set[str] | None = None) -> None:
+        self._known_extensions: frozenset[str] = (
+            _BUILTIN_EXTENSIONS | extra_extensions if extra_extensions else _BUILTIN_EXTENSIONS
+        )
+
     async def handle(self, context: RequestContext, event_queue: EventQueue) -> None:
         requested = context.requested_extensions
         activated: list[str] = []
 
         # Activate every requested extension we recognise
         for uri in requested:
-            if uri in _KNOWN_EXTENSIONS:
+            if uri in self._known_extensions:
                 activated.append(uri)
 
         # Build response data

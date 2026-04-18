@@ -14,7 +14,7 @@ class DummyAgentExecutor(AgentExecutor):
     def __init__(self) -> None:
         self._router = SkillRouter()
 
-    def register_all_skills(self) -> None:
+    def register_all_skills(self, *, plugin_extension_uris: set[str] | None = None) -> None:
         """Register all available skills."""
         from dummy_a2a.skills.auth_required import AuthRequiredSkill
         from dummy_a2a.skills.data_response import DataResponseSkill
@@ -41,7 +41,7 @@ class DummyAgentExecutor(AgentExecutor):
         self._router.register("data", DataResponseSkill())
         self._router.register("multi", MultiArtifactSkill())
         self._router.register("debug", DebugSkill())
-        self._router.register("ext", ExtSkill())
+        self._router.register("ext", ExtSkill(extra_extensions=plugin_extension_uris))
         self._router.register("ext-required", ExtRequiredSkill())
 
     def register_plugin(self, command: str, handler: SkillHandler) -> None:
