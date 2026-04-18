@@ -293,10 +293,6 @@ MY_EXT_URI = "urn:example:my-extension"
 
 class MyExtensionSkill:
     async def handle(self, context: RequestContext, event_queue: EventQueue) -> None:
-        # Activate the extension if requested via header
-        if MY_EXT_URI in context.requested_extensions:
-            context.add_activated_extension(MY_EXT_URI)
-
         await event_queue.enqueue_event(
             TaskStatusUpdateEvent(
                 task_id=context.task_id,
@@ -586,7 +582,7 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | `error.method-not-found` | errors | Unknown method returns -32601 |
 | `error.invalid-jsonrpc` | errors | Invalid jsonrpc version returns error |
 | `ext.card-advertises-extensions` | extensions | Card has extensions with uri + description |
-| `ext.negotiation-activates` | extensions | Request header activates, response header confirms |
+| `ext.negotiation-activates` | extensions | Requesting a known extension activates it (`artifact.extensions`) |
 | `ext.unknown-ignored` | extensions | Unknown extension URIs don't error |
 | `ext.artifact-tagged` | extensions | `artifact.extensions` contains activated URIs |
 | `ext.multiple-extensions` | extensions | Multiple extensions activated simultaneously |
@@ -596,7 +592,7 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | `ext.partial-activation` | extensions | Only known extensions activate when mixed with unknown URIs |
 | `ext.all-non-required` | extensions | All non-required extensions activate when requested together |
 | `ext.artifact-extensions-exact` | extensions | `artifact.extensions` matches the activated set exactly |
-| `ext.header-and-artifact-agree` | extensions | Response header and `artifact.extensions` agree |
+| `ext.header-and-artifact-agree` | extensions | Activated extensions in artifact match the requested known extensions |
 | `ext.ordering-stable` | extensions | Same combination produces stable ordering across requests |
 
 </details>
