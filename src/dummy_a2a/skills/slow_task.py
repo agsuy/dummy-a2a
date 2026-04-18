@@ -2,6 +2,7 @@
 
 import asyncio
 
+from a2a.helpers import new_text_artifact, new_text_message
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import (
@@ -10,7 +11,6 @@ from a2a.types import (
     TaskStatus,
     TaskStatusUpdateEvent,
 )
-from a2a.utils import new_agent_text_message, new_text_artifact
 
 STEPS = 10
 STEP_DELAY = 1.0
@@ -24,7 +24,7 @@ class SlowTaskSkill:
                 context_id=context.context_id,
                 status=TaskStatus(
                     state=TaskState.TASK_STATE_WORKING,
-                    message=new_agent_text_message(
+                    message=new_text_message(
                         text="Starting slow task...",
                         context_id=context.context_id,
                         task_id=context.task_id,
@@ -44,7 +44,7 @@ class SlowTaskSkill:
                     context_id=context.context_id,
                     status=TaskStatus(
                         state=TaskState.TASK_STATE_WORKING,
-                        message=new_agent_text_message(
+                        message=new_text_message(
                             text=f"Progress: {i + 1}/{STEPS}",
                             context_id=context.context_id,
                             task_id=context.task_id,
