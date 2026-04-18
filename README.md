@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/agsuy/dummy-a2a/blob/main/LICENSE)
 
 [![a2a-sdk latest on PyPI](https://img.shields.io/pypi/v/a2a-sdk.svg?logo=pypi&logoColor=white&label=a2a-sdk%20latest)](https://pypi.org/project/a2a-sdk/)
-[![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a1-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
+[![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a3-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
 
 A programmable A2A 1.0 test agent. Send it a command keyword, get spec-compliant behavior back.
 
