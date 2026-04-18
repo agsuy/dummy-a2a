@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v0.6.2 (2026-04-18)
+
+### Bug Fixes
+
+- **ext**: Instance-scoped extensions, docs, pytest warning filter
+  ([#20](https://github.com/agsuy/dummy-a2a/pull/20),
+  [`3738716`](https://github.com/agsuy/dummy-a2a/commit/3738716660f8fa751ae058c2302c7912ccc0a50b))
+
+- **ext**: Pass plugin extension URIs into ExtSkill at construction
+  ([#20](https://github.com/agsuy/dummy-a2a/pull/20),
+  [`3738716`](https://github.com/agsuy/dummy-a2a/commit/3738716660f8fa751ae058c2302c7912ccc0a50b))
+
+### Chores
+
+- **test**: Ignore pytest unraisable warnings from a2a-sdk teardown
+  ([#20](https://github.com/agsuy/dummy-a2a/pull/20),
+  [`3738716`](https://github.com/agsuy/dummy-a2a/commit/3738716660f8fa751ae058c2302c7912ccc0a50b))
+
+### Documentation
+
+- Align extension examples with A2A-Extensions and artifact.extensions
+  ([#20](https://github.com/agsuy/dummy-a2a/pull/20),
+  [`3738716`](https://github.com/agsuy/dummy-a2a/commit/3738716660f8fa751ae058c2302c7912ccc0a50b))
+
+- Drop add_activated_extension from plugin example and sync contract table
+  ([#20](https://github.com/agsuy/dummy-a2a/pull/20),
+  [`3738716`](https://github.com/agsuy/dummy-a2a/commit/3738716660f8fa751ae058c2302c7912ccc0a50b))
+
+
 ## v0.6.1 (2026-04-18)
 
 ### Bug Fixes
