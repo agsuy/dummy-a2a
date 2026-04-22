@@ -28,7 +28,7 @@ async with DummyA2AServer(port=0) as server:
 results = await verify_a2a_compliance("http://your-server:9000")
 ```
 
-> **~2 300 LOC · 11/11 operations · all 8 task states · 3 content types · 6 extensions + plugin system · 46 compliance contracts**
+> **~2 600 LOC · 11/11 operations · all 8 task states · 3 content types · 6 extensions + plugin system · 46 compliance contracts**
 
 The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin.
 
