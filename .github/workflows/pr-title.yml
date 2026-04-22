@@ -20,7 +20,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Validate PR title
         run: |
           python scripts/validate_commit_msg.py --message "${{ github.event.pull_request.title }}"
+
+      - name: Warn if src/ changed but title won't trigger a release
+        if: github.event.pull_request.base.ref == 'main'
+        run: |
+          title="${{ github.event.pull_request.title }}"
+          # Check if any src/ files changed in this PR
+          src_changed=$(git diff --name-only "origin/${{ github.event.pull_request.base.ref }}...origin/${{ github.event.pull_request.head.ref }}" -- src/ | head -1)
+          if [[ -n "$src_changed" ]]; then
+            # Check if title starts with a bump-triggering type
+            if ! echo "$title" | grep -qE '^(feat|fix|perf|refactor)(\([^)]+\))?!?:'; then
+              echo "::error::PR changes src/ files but title prefix ('${title%%:*}:') won't trigger a version bump. Use feat:, fix:, perf:, or refactor: so semantic-release picks it up."
+              exit 1
+            fi
+          fi
