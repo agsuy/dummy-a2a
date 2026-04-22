@@ -22,7 +22,7 @@ async def test_contracts_concurrent():
 
     The warning filter suppresses ActiveTask._run_consumer teardown races in
     the a2a-sdk that surface only under coverage + concurrent servers.
-    Tracked against a2a-sdk 1.0.0a3; remove once the SDK fixes cleanup.
+    Still present in a2a-sdk 1.0.1; remove once the SDK fixes cleanup.
     """
 
     @asynccontextmanager
