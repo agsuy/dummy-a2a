@@ -8,7 +8,8 @@
 [![a2a-sdk latest on PyPI](https://img.shields.io/pypi/v/a2a-sdk.svg?logo=pypi&logoColor=white&label=a2a-sdk%20latest)](https://pypi.org/project/a2a-sdk/)
 [![a2a-sdk pinned by dummy-a2a](https://img.shields.io/badge/a2a--sdk%20pin-1.0.0a3-informational)](https://github.com/agsuy/dummy-a2a/blob/main/pyproject.toml)
 
-`dummy-a2a` is a programmable test agent for the [A2A protocol](https://google.github.io/A2A/). Send it a command keyword, get spec-compliant behavior back — every task state, every content type, every error code, every extension flow.
+`dummy-a2a` is a programmable test agent for the [A2A protocol](https://google.github.io/A2A/). Send it a command keyword, get spec-compliant behavior back. 
+Every task state, every content type, every error code, every extension flow.
 
 Ship it as a **test double** for your client, point its **46 portable contracts** at your server, or plug in your own extension and validate it end-to-end. One `pip install`, zero config.
 
@@ -126,19 +127,17 @@ curl http://localhost:9000/.well-known/agent-card.json
 # → {"name": "Dummy A2A Test Agent", "skills": [...], "capabilities": {...}, ...}
 
 # Send a message
-curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
-  "jsonrpc": "2.0", "id": 1,
-  "method": "SendMessage",
-  "params": {"message": {"messageId": "1", "role": 1, "parts": [{"text": "echo hello"}]}}
-}'
+curl -X POST http://localhost:9000/ \
+  -H 'Content-Type: application/json' \
+  -H 'A2A-Version: 1.0' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"echo hello"}]}}}'
 # → {"result": {"task": {"id": "...", "contextId": "...", "status": {"state": "TASK_STATE_COMPLETED"}, "artifacts": [{"parts": [{"text": "hello"}]}], "history": [...]}}, "id": 1, "jsonrpc": "2.0"}
 
 # Trigger a failure
-curl -X POST http://localhost:9000/ -H 'Content-Type: application/json' -d '{
-  "jsonrpc": "2.0", "id": 1,
-  "method": "SendMessage",
-  "params": {"message": {"messageId": "1", "role": 1, "parts": [{"text": "fail"}]}}
-}'
+curl -X POST http://localhost:9000/ \
+  -H 'Content-Type: application/json' \
+  -H 'A2A-Version: 1.0' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"fail"}]}}}'
 # → {"result": {"task": {"id": "...", "status": {"state": "TASK_STATE_FAILED", "message": {"role": "ROLE_AGENT", "parts": [{"text": "Deliberate failure for testing purposes."}]}}, "history": [...]}}, "id": 1, "jsonrpc": "2.0"}
 ```
 
@@ -378,7 +377,9 @@ async def server():
 
 @pytest.mark.asyncio
 async def test_my_extension(server):
-    async with httpx.AsyncClient(base_url=server.url) as client:
+    async with httpx.AsyncClient(
+        base_url=server.url, headers={"A2A-Version": "1.0"},
+    ) as client:
         # Verify extension is in the agent card
         card = (await client.get("/.well-known/agent-card.json")).json()
         uris = [e["uri"] for e in card["capabilities"]["extensions"]]
@@ -439,6 +440,7 @@ curl -s http://localhost:9000/.well-known/agent-card.json | jq '.capabilities.ex
 # Negotiate extensions
 curl -s http://localhost:9000/ \
   -H 'Content-Type: application/json' \
+  -H 'A2A-Version: 1.0' \
   -H 'A2A-Extensions: urn:a2a:dummy:echo-metadata, urn:a2a:dummy:timestamp' \
   -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext"}]}}}' \
   -D - 2>/dev/null | head -20
@@ -446,11 +448,13 @@ curl -s http://localhost:9000/ \
 # Test required extension enforcement (returns -32008)
 curl -s http://localhost:9000/ \
   -H 'Content-Type: application/json' \
+  -H 'A2A-Version: 1.0' \
   -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext-required"}]}}}'
 
 # Satisfy the required extension
 curl -s http://localhost:9000/ \
   -H 'Content-Type: application/json' \
+  -H 'A2A-Version: 1.0' \
   -H 'A2A-Extensions: urn:a2a:dummy:required-test' \
   -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":1,"parts":[{"text":"ext-required"}]}}}'
 ```
@@ -463,7 +467,9 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_extension_negotiation(a2a_url):
-    async with httpx.AsyncClient(base_url=a2a_url) as client:
+    async with httpx.AsyncClient(
+        base_url=a2a_url, headers={"A2A-Version": "1.0"},
+    ) as client:
         resp = await client.post("/", json={
             "jsonrpc": "2.0", "id": 1,
             "method": "SendMessage",
@@ -476,7 +482,9 @@ async def test_extension_negotiation(a2a_url):
 
 @pytest.mark.asyncio
 async def test_required_extension_error(a2a_url):
-    async with httpx.AsyncClient(base_url=a2a_url) as client:
+    async with httpx.AsyncClient(
+        base_url=a2a_url, headers={"A2A-Version": "1.0"},
+    ) as client:
         resp = await client.post("/", json={
             "jsonrpc": "2.0", "id": 1,
             "method": "SendMessage",
