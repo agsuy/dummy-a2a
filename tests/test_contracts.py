@@ -16,8 +16,14 @@ async def test_contract(contract, a2a_url):
     assert result.passed, f"{result.contract_id}: {result.detail}"
 
 
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 async def test_contracts_concurrent():
-    """Run all contracts concurrently with isolated servers."""
+    """Run all contracts concurrently with isolated servers.
+
+    The warning filter suppresses ActiveTask._run_consumer teardown races in
+    the a2a-sdk that surface only under coverage + concurrent servers.
+    Still present in a2a-sdk 1.0.1; remove once the SDK fixes cleanup.
+    """
 
     @asynccontextmanager
     async def factory():

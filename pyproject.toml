@@ -11,14 +11,14 @@ requires-python = ">=3.12"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
 dependencies = [
-    "a2a-sdk[grpc,http-server,sqlite]==1.0.0a3",
+    "a2a-sdk[http-server,sqlite]==1.0.1",
     "httpx>=0.28",
     "packaging>=23.2",
     "uvicorn>=0.34",
@@ -46,11 +46,7 @@ dummy_a2a = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-filterwarnings = [
-    # Upstream a2a-sdk: ActiveTask coroutines race during teardown under coverage.
-    # Tracked against a2a-sdk 1.0.0a3; remove once the SDK fixes cleanup.
-    "ignore::pytest.PytestUnraisableExceptionWarning",
-]
+filterwarnings = []
 
 [tool.coverage.run]
 source = ["dummy_a2a"]
