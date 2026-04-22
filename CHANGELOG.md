@@ -2,6 +2,72 @@
 
 <!-- version list -->
 
+## v0.6.3 (2026-04-22)
+
+### Bug Fixes
+
+- Enforce bump-worthy PR titles when src changes ([#24](https://github.com/agsuy/dummy-a2a/pull/24),
+  [`d7982c0`](https://github.com/agsuy/dummy-a2a/commit/d7982c071100ab4d322e7f5ebac7a6233d9f56ca))
+
+- Fix testing fixtures import example ([#24](https://github.com/agsuy/dummy-a2a/pull/24),
+  [`d7982c0`](https://github.com/agsuy/dummy-a2a/commit/d7982c071100ab4d322e7f5ebac7a6233d9f56ca))
+
+### Chores
+
+- Bump a2a-sdk pin to 1.0.1 ([#22](https://github.com/agsuy/dummy-a2a/pull/22),
+  [`51a7253`](https://github.com/agsuy/dummy-a2a/commit/51a72532328d16b517faf524c9df812d95ce548c))
+
+### Continuous Integration
+
+- Enforce bump-worthy PR titles when src changes ([#24](https://github.com/agsuy/dummy-a2a/pull/24),
+  [`d7982c0`](https://github.com/agsuy/dummy-a2a/commit/d7982c071100ab4d322e7f5ebac7a6233d9f56ca))
+
+### Documentation
+
+- Add A2A-Version header to examples ([#22](https://github.com/agsuy/dummy-a2a/pull/22),
+  [`51a7253`](https://github.com/agsuy/dummy-a2a/commit/51a72532328d16b517faf524c9df812d95ce548c))
+
+- Add A2A-Version headers and scope pytest warning
+  ([#22](https://github.com/agsuy/dummy-a2a/pull/22),
+  [`51a7253`](https://github.com/agsuy/dummy-a2a/commit/51a72532328d16b517faf524c9df812d95ce548c))
+
+- **readme**: Bump LOC count to ~2 600 ([#22](https://github.com/agsuy/dummy-a2a/pull/22),
+  [`51a7253`](https://github.com/agsuy/dummy-a2a/commit/51a72532328d16b517faf524c9df812d95ce548c))
+
+- **readme**: Expand intro and clarify plugin vs ext negotiation
+  ([#23](https://github.com/agsuy/dummy-a2a/pull/23),
+  [`0d9457c`](https://github.com/agsuy/dummy-a2a/commit/0d9457cd9819ade5ae80bc202c566be041902588))
+
+- **readme**: Expand intro and clarify plugin vs ext negotiation
+  ([#22](https://github.com/agsuy/dummy-a2a/pull/22),
+  [`51a7253`](https://github.com/agsuy/dummy-a2a/commit/51a72532328d16b517faf524c9df812d95ce548c))
+
+- **readme**: Improve contract testing and examples
+  ([#23](https://github.com/agsuy/dummy-a2a/pull/23),
+  [`0d9457c`](https://github.com/agsuy/dummy-a2a/commit/0d9457cd9819ade5ae80bc202c566be041902588))
+
+- **readme**: Move contract testing section earlier
+  ([#24](https://github.com/agsuy/dummy-a2a/pull/24),
+  [`d7982c0`](https://github.com/agsuy/dummy-a2a/commit/d7982c071100ab4d322e7f5ebac7a6233d9f56ca))
+
+- **readme**: Move contract testing section earlier
+  ([#23](https://github.com/agsuy/dummy-a2a/pull/23),
+  [`0d9457c`](https://github.com/agsuy/dummy-a2a/commit/0d9457cd9819ade5ae80bc202c566be041902588))
+
+- **readme**: Restructure intro and extensions section
+  ([#24](https://github.com/agsuy/dummy-a2a/pull/24),
+  [`d7982c0`](https://github.com/agsuy/dummy-a2a/commit/d7982c071100ab4d322e7f5ebac7a6233d9f56ca))
+
+- **readme**: Restructure intro and extensions section
+  ([#23](https://github.com/agsuy/dummy-a2a/pull/23),
+  [`0d9457c`](https://github.com/agsuy/dummy-a2a/commit/0d9457cd9819ade5ae80bc202c566be041902588))
+
+### Testing
+
+- Scope PytestUnraisableExceptionWarning filter ([#22](https://github.com/agsuy/dummy-a2a/pull/22),
+  [`51a7253`](https://github.com/agsuy/dummy-a2a/commit/51a72532328d16b517faf524c9df812d95ce548c))
+
+
 ## v0.6.2 (2026-04-18)
 
 ### Bug Fixes
