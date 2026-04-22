@@ -52,16 +52,16 @@ Codebase is intentionally small and modular. Each skill is a self-contained file
   - [As a library](#2-as-a-library)
   - [Pytest fixtures](#3-pytest-fixtures) (HTTP + HTTPS)
 - [Commands](#commands) -- keyword-driven test behaviors
+- [Contract Testing](#contract-testing) -- 46 portable compliance contracts
+  - [Run against your server](#run-contracts-against-your-server)
+  - [Run as pytest](#run-contracts-as-pytest)
+  - [Contract list](#contract-list)
 - [Extensions](#extensions) -- A2A 1.0 extension negotiation
   - [How it works](#how-it-works)
   - [Registered extensions](#registered-extensions)
   - [Testing with curl](#testing-extensions-with-curl)
   - [Testing with pytest](#testing-extensions-with-pytest)
   - [Testing with contracts](#testing-extensions-with-portable-contracts)
-- [Contract Testing](#contract-testing) -- 46 portable compliance contracts
-  - [Run against your server](#run-contracts-against-your-server)
-  - [Run as pytest](#run-contracts-as-pytest)
-  - [Contract list](#contract-list)
 - [Development](#development)
 - [License](#license)
 
@@ -218,6 +218,128 @@ Send a command keyword as the first word of your message:
 | `ext-required` | Enforces required extension or returns -32008 | completed/error |
 | `debug` | Returns request metadata (extended card only) | completed |
 | `<anything>` | Falls back to echo | completed |
+
+---
+
+## Contract Testing
+
+46 portable contracts that verify A2A spec compliance against **any** server.
+
+The dummy server is the reference implementation -- contracts are dogfooded against it in CI. Run them against your server to validate compliance.
+
+### Run contracts against your server
+
+Sequential execution against a shared server:
+
+```python
+import asyncio
+from dummy_a2a import verify_a2a_compliance
+
+async def main():
+    results = await verify_a2a_compliance("http://localhost:9000")
+    for r in results:
+        print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
+
+asyncio.run(main())
+```
+
+Concurrent execution with isolated servers (each contract gets a fresh instance):
+
+```python
+import asyncio
+from contextlib import asynccontextmanager
+from dummy_a2a import DummyA2AServer, verify_a2a_compliance
+
+@asynccontextmanager
+async def factory():
+    async with DummyA2AServer(port=0) as server:
+        yield server.url
+
+async def main():
+    results = await verify_a2a_compliance(server_factory=factory)
+    for r in results:
+        print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
+
+asyncio.run(main())
+```
+
+### Run contracts as pytest
+
+```python
+import pytest
+from dummy_a2a.contracts import a2a_contracts
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("contract", a2a_contracts, ids=lambda c: c.id)
+async def test_a2a_compliance(contract):
+    result = await contract.verify("http://localhost:9000")
+    assert result.passed, f"{result.contract_id}: {result.detail}"
+```
+
+### Filter by category
+
+```python
+results = await verify_a2a_compliance(
+    "http://localhost:9000",
+    categories=["agent-card", "streaming", "extensions"],
+)
+```
+
+Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `list-tasks` `cancel-task` `streaming` `subscribe-to-task` `content-types` `push-notifications` `errors` `extensions`
+
+<details>
+<summary><strong>All 46 contracts</strong></summary>
+
+| ID | Category | What it checks |
+|----|----------|---------------|
+| `card.well-known` | agent-card | Card served at `/.well-known/agent-card.json` |
+| `card.required-fields` | agent-card | Has name, description, version, skills, etc. |
+| `card.skills-have-required-fields` | agent-card | Each skill has id, name, description, tags |
+| `card.interface-protocol-version` | agent-card | Interface declares protocolVersion |
+| `card.extended-card` | agent-card | Extended card via `GetExtendedAgentCard` |
+| `send.completed` | send-message | SendMessage returns COMPLETED |
+| `send.has-task-id` | send-message | Response has task ID and context ID |
+| `send.has-artifacts` | send-message | Completed task has artifacts |
+| `send.has-history` | send-message | Task includes message history |
+| `state.failed` | task-state | FAILED state with error message |
+| `state.rejected` | task-state | REJECTED state |
+| `state.input-required` | task-state | INPUT_REQUIRED with prompt |
+| `state.auth-required` | task-state | AUTH_REQUIRED with message |
+| `multi-turn.input-required-follow-up` | multi-turn | Follow-up after INPUT_REQUIRED completes |
+| `multi-turn.auth-required-follow-up` | multi-turn | Follow-up after AUTH_REQUIRED completes |
+| `get-task.retrieves-task` | get-task | GetTask returns created task |
+| `get-task.not-found` | get-task | GetTask errors on missing task |
+| `get-task.includes-artifacts` | get-task | GetTask includes artifacts |
+| `list-tasks.returns-tasks` | list-tasks | ListTasks returns created tasks |
+| `cancel.cancels-task` | cancel-task | CancelTask transitions to CANCELED |
+| `cancel.nonexistent-task` | cancel-task | CancelTask errors on missing task |
+| `stream.sse-events` | streaming | SSE yields status + artifact events |
+| `content.text-part` | content-types | TextPart artifact |
+| `content.file-part` | content-types | FilePart with raw bytes |
+| `content.data-part` | content-types | DataPart with structured JSON |
+| `content.multi-artifact` | content-types | Multiple artifacts in one task |
+| `push.create-config` | push-notifications | Create push notification config |
+| `push.delete-config` | push-notifications | Delete push notification config |
+| `push.get-config` | push-notifications | Retrieve a stored push notification config |
+| `push.list-configs` | push-notifications | List push notification configs for a task |
+| `subscribe.reattach` | subscribe-to-task | SubscribeToTask reattaches to a running task via SSE |
+| `error.method-not-found` | errors | Unknown method returns -32601 |
+| `error.invalid-jsonrpc` | errors | Invalid jsonrpc version returns error |
+| `ext.card-advertises-extensions` | extensions | Card has extensions with uri + description |
+| `ext.negotiation-activates` | extensions | Requesting a known extension activates it (`artifact.extensions`) |
+| `ext.unknown-ignored` | extensions | Unknown extension URIs don't error |
+| `ext.artifact-tagged` | extensions | `artifact.extensions` contains activated URIs |
+| `ext.multiple-extensions` | extensions | Multiple extensions activated simultaneously |
+| `ext.params-in-card` | extensions | Extension params accessible in card |
+| `ext.required-enforced` | extensions | Missing required extension returns -32008 |
+| `ext.required-satisfied` | extensions | Providing required extension succeeds |
+| `ext.partial-activation` | extensions | Only known extensions activate when mixed with unknown URIs |
+| `ext.all-non-required` | extensions | All non-required extensions activate when requested together |
+| `ext.artifact-extensions-exact` | extensions | `artifact.extensions` matches the activated set exactly |
+| `ext.header-and-artifact-agree` | extensions | Activated extensions in artifact match the requested known extensions |
+| `ext.ordering-stable` | extensions | Same combination produces stable ordering across requests |
+
+</details>
 
 ---
 
@@ -500,128 +622,6 @@ results = await verify_a2a_compliance(
 for r in results:
     print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}")
 ```
-
----
-
-## Contract Testing
-
-46 portable contracts that verify A2A spec compliance against **any** server.
-
-The dummy server is the reference implementation -- contracts are dogfooded against it in CI. Run them against your server to validate compliance.
-
-### Run contracts against your server
-
-Sequential execution against a shared server:
-
-```python
-import asyncio
-from dummy_a2a import verify_a2a_compliance
-
-async def main():
-    results = await verify_a2a_compliance("http://localhost:9000")
-    for r in results:
-        print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
-
-asyncio.run(main())
-```
-
-Concurrent execution with isolated servers (each contract gets a fresh instance):
-
-```python
-import asyncio
-from contextlib import asynccontextmanager
-from dummy_a2a import DummyA2AServer, verify_a2a_compliance
-
-@asynccontextmanager
-async def factory():
-    async with DummyA2AServer(port=0) as server:
-        yield server.url
-
-async def main():
-    results = await verify_a2a_compliance(server_factory=factory)
-    for r in results:
-        print(f"{'PASS' if r.passed else 'FAIL'} {r.contract_id}: {r.detail}")
-
-asyncio.run(main())
-```
-
-### Run contracts as pytest
-
-```python
-import pytest
-from dummy_a2a.contracts import a2a_contracts
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("contract", a2a_contracts, ids=lambda c: c.id)
-async def test_a2a_compliance(contract):
-    result = await contract.verify("http://localhost:9000")
-    assert result.passed, f"{result.contract_id}: {result.detail}"
-```
-
-### Filter by category
-
-```python
-results = await verify_a2a_compliance(
-    "http://localhost:9000",
-    categories=["agent-card", "streaming", "extensions"],
-)
-```
-
-Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `list-tasks` `cancel-task` `streaming` `subscribe-to-task` `content-types` `push-notifications` `errors` `extensions`
-
-<details>
-<summary><strong>All 46 contracts</strong></summary>
-
-| ID | Category | What it checks |
-|----|----------|---------------|
-| `card.well-known` | agent-card | Card served at `/.well-known/agent-card.json` |
-| `card.required-fields` | agent-card | Has name, description, version, skills, etc. |
-| `card.skills-have-required-fields` | agent-card | Each skill has id, name, description, tags |
-| `card.interface-protocol-version` | agent-card | Interface declares protocolVersion |
-| `card.extended-card` | agent-card | Extended card via `GetExtendedAgentCard` |
-| `send.completed` | send-message | SendMessage returns COMPLETED |
-| `send.has-task-id` | send-message | Response has task ID and context ID |
-| `send.has-artifacts` | send-message | Completed task has artifacts |
-| `send.has-history` | send-message | Task includes message history |
-| `state.failed` | task-state | FAILED state with error message |
-| `state.rejected` | task-state | REJECTED state |
-| `state.input-required` | task-state | INPUT_REQUIRED with prompt |
-| `state.auth-required` | task-state | AUTH_REQUIRED with message |
-| `multi-turn.input-required-follow-up` | multi-turn | Follow-up after INPUT_REQUIRED completes |
-| `multi-turn.auth-required-follow-up` | multi-turn | Follow-up after AUTH_REQUIRED completes |
-| `get-task.retrieves-task` | get-task | GetTask returns created task |
-| `get-task.not-found` | get-task | GetTask errors on missing task |
-| `get-task.includes-artifacts` | get-task | GetTask includes artifacts |
-| `list-tasks.returns-tasks` | list-tasks | ListTasks returns created tasks |
-| `cancel.cancels-task` | cancel-task | CancelTask transitions to CANCELED |
-| `cancel.nonexistent-task` | cancel-task | CancelTask errors on missing task |
-| `stream.sse-events` | streaming | SSE yields status + artifact events |
-| `content.text-part` | content-types | TextPart artifact |
-| `content.file-part` | content-types | FilePart with raw bytes |
-| `content.data-part` | content-types | DataPart with structured JSON |
-| `content.multi-artifact` | content-types | Multiple artifacts in one task |
-| `push.create-config` | push-notifications | Create push notification config |
-| `push.delete-config` | push-notifications | Delete push notification config |
-| `push.get-config` | push-notifications | Retrieve a stored push notification config |
-| `push.list-configs` | push-notifications | List push notification configs for a task |
-| `subscribe.reattach` | subscribe-to-task | SubscribeToTask reattaches to a running task via SSE |
-| `error.method-not-found` | errors | Unknown method returns -32601 |
-| `error.invalid-jsonrpc` | errors | Invalid jsonrpc version returns error |
-| `ext.card-advertises-extensions` | extensions | Card has extensions with uri + description |
-| `ext.negotiation-activates` | extensions | Requesting a known extension activates it (`artifact.extensions`) |
-| `ext.unknown-ignored` | extensions | Unknown extension URIs don't error |
-| `ext.artifact-tagged` | extensions | `artifact.extensions` contains activated URIs |
-| `ext.multiple-extensions` | extensions | Multiple extensions activated simultaneously |
-| `ext.params-in-card` | extensions | Extension params accessible in card |
-| `ext.required-enforced` | extensions | Missing required extension returns -32008 |
-| `ext.required-satisfied` | extensions | Providing required extension succeeds |
-| `ext.partial-activation` | extensions | Only known extensions activate when mixed with unknown URIs |
-| `ext.all-non-required` | extensions | All non-required extensions activate when requested together |
-| `ext.artifact-extensions-exact` | extensions | `artifact.extensions` matches the activated set exactly |
-| `ext.header-and-artifact-agree` | extensions | Activated extensions in artifact match the requested known extensions |
-| `ext.ordering-stable` | extensions | Same combination produces stable ordering across requests |
-
-</details>
 
 ---
 
