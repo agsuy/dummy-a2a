@@ -2,7 +2,7 @@
 
 Import these fixtures into your conftest.py::
 
-    from dummy_a2a.testing import a2a_server, a2a_client  # noqa: F401
+    from dummy_a2a.testing import a2a_server, a2a_url, a2a_http  # noqa: F401
 """
 
 from __future__ import annotations
