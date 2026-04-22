@@ -13,6 +13,14 @@ Every task state, every content type, every error code, every extension flow.
 
 Ship it as a **test double** for your client, point its **46 portable contracts** at your server, or plug in your own extension and validate it end-to-end. One `pip install`, zero config.
 
+### What you can validate
+
+| Goal | How |
+|------|-----|
+| **Validate your client** | Point your client at the dummy server. Send commands (`echo`, `fail`, `stream`, `ask`, `ext`, ...) and assert your client handles each response shape, state transition, SSE stream, and error code correctly. |
+| **Validate your server** | Run the 46 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
+| **Validate your extensions** | Register your extension as a plugin via `A2APlugin` and test it end-to-end: agent card advertising, header negotiation, artifact tagging, and multi-extension activation. |
+
 ```bash
 pip install dummy-a2a
 ```
@@ -30,17 +38,9 @@ results = await verify_a2a_compliance("http://your-server:9000")
 
 > **~2 600 LOC · 11/11 operations · all 8 task states · 3 content types · 6 extensions + plugin system · 46 compliance contracts**
 
-The badges above compare **latest `a2a-sdk` on PyPI** with **the exact version pinned in `pyproject.toml`**; CI fails if PyPI is ahead so we remember to bump the pin.
+The `a2a-sdk pin` badge shows the version we test against.
 
 Codebase is intentionally small and modular. Each skill is a self-contained file under 80 lines, each contract is an independent HTTP assertion. When the spec changes, the blast radius is typically one skill or one contract.
-
-### What you can validate
-
-| Goal | How |
-|------|-----|
-| **Validate your client** | Point your client at the dummy server. Send commands (`echo`, `fail`, `stream`, `ask`, `ext`, ...) and assert your client handles each response shape, state transition, SSE stream, and error code correctly. |
-| **Validate your server** | Run the 46 portable contracts against your server. Contracts are dogfooded against the dummy server in CI, so you know they're correct. |
-| **Validate your extensions** | Register your extension as a plugin via `A2APlugin` and test it end-to-end: agent card advertising, header negotiation, artifact tagging, and multi-extension activation. |
 
 ---
 
@@ -51,11 +51,10 @@ Codebase is intentionally small and modular. Each skill is a self-contained file
   - [Standalone server](#1-standalone-server) (HTTP, HTTPS, Docker)
   - [As a library](#2-as-a-library)
   - [Pytest fixtures](#3-pytest-fixtures) (HTTP + HTTPS)
-- [Commands](#commands) -- 14 command keywords
+- [Commands](#commands) -- keyword-driven test behaviors
 - [Extensions](#extensions) -- A2A 1.0 extension negotiation
   - [How it works](#how-it-works)
   - [Registered extensions](#registered-extensions)
-  - [Extension plugins](#extension-plugins) -- test your own extension
   - [Testing with curl](#testing-extensions-with-curl)
   - [Testing with pytest](#testing-extensions-with-pytest)
   - [Testing with contracts](#testing-extensions-with-portable-contracts)
@@ -63,7 +62,6 @@ Codebase is intentionally small and modular. Each skill is a self-contained file
   - [Run against your server](#run-contracts-against-your-server)
   - [Run as pytest](#run-contracts-as-pytest)
   - [Contract list](#contract-list)
-- [Spec Coverage](#spec-coverage)
 - [Development](#development)
 - [License](#license)
 
@@ -71,11 +69,7 @@ Codebase is intentionally small and modular. Each skill is a self-contained file
 
 ## Install
 
-```bash
-pip install dummy-a2a
-```
-
-Or from source:
+From source:
 
 ```bash
 git clone https://github.com/agsuy/dummy-a2a && cd dummy-a2a
@@ -106,18 +100,6 @@ dummy-a2a --log-level info --sdk-log-level DEBUG
 ```
 
 `--log-level` controls the server (uvicorn) logger, `--sdk-log-level` controls the `a2a` SDK logger independently. Both accept standard Python log levels (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).
-
-As a library:
-
-```python
-# Silence SDK noise programmatically
-async with DummyA2AServer(port=0, sdk_log_level="CRITICAL") as server:
-    ...
-
-# Verbose server + quiet SDK
-async with DummyA2AServer(port=0, log_level="info", sdk_log_level="ERROR") as server:
-    ...
-```
 
 Try it out:
 
@@ -153,6 +135,14 @@ async with DummyA2AServer(port=0) as server:
 # With HTTPS
 async with DummyA2AServer(port=0, ssl_certfile="cert.pem", ssl_keyfile="key.pem") as server:
     print(server.url)  # https://127.0.0.1:<random>
+
+# Silence SDK noise programmatically
+async with DummyA2AServer(port=0, sdk_log_level="CRITICAL") as server:
+    ...
+
+# Verbose server + quiet SDK
+async with DummyA2AServer(port=0, log_level="info", sdk_log_level="ERROR") as server:
+    ...
 ```
 
 ### 3. Pytest fixtures
@@ -163,20 +153,21 @@ Drop this in your `conftest.py`:
 from dummy_a2a.testing import a2a_server, a2a_url, a2a_http  # noqa: F401
 ```
 
-Write tests:
+Write tests using the `a2a_http` fixture (an `httpx.AsyncClient` with `base_url` and `A2A-Version` already set):
 
 ```python
 import pytest
+from tests.helpers import send  # or write your own JSON-RPC helper
 
 @pytest.mark.asyncio
-async def test_echo(a2a_url):
-    result = await my_a2a_client.send(a2a_url, "echo hello")
-    assert result.state == "TASK_STATE_COMPLETED"
+async def test_echo(a2a_http):
+    task = await send(a2a_http, "echo hello")
+    assert task["status"]["state"] == "TASK_STATE_COMPLETED"
 
 @pytest.mark.asyncio
-async def test_failure(a2a_url):
-    result = await my_a2a_client.send(a2a_url, "fail")
-    assert result.state == "TASK_STATE_FAILED"
+async def test_failure(a2a_http):
+    task = await send(a2a_http, "fail")
+    assert task["status"]["state"] == "TASK_STATE_FAILED"
 ```
 
 For HTTPS testing:
@@ -274,7 +265,8 @@ from dummy_a2a.agent_card import (
 )
 ```
 
-### Extension plugins
+<details>
+<summary><strong>Extension plugins — test your own extension</strong></summary>
 
 Register your own A2A extension with the dummy server using `A2APlugin`. The server will advertise it in the agent card, route its command to your handler, and the `ext` skill will activate it during header negotiation -- no changes to dummy-a2a needed.
 
@@ -430,6 +422,8 @@ from dummy_a2a import A2APlugin, SkillHandler, DummyA2AServer
 class SkillHandler(Protocol):
     async def handle(self, context: RequestContext, event_queue: EventQueue) -> None: ...
 ```
+
+</details>
 
 ### Testing extensions with curl
 
@@ -628,18 +622,6 @@ Categories: `agent-card` `send-message` `task-state` `multi-turn` `get-task` `li
 | `ext.ordering-stable` | extensions | Same combination produces stable ordering across requests |
 
 </details>
-
----
-
-## Spec Coverage
-
-| Area | Coverage |
-|------|----------|
-| **Operations** | 11/11 -- SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask, SubscribeToTask, push notification CRUD (4), GetExtendedAgentCard |
-| **Task states** | All 8 -- submitted, working, input_required, completed, canceled, failed, rejected, auth_required |
-| **Content types** | TextPart, FilePart (raw bytes), DataPart (structured JSON) |
-| **Extensions** | 6 test extensions + plugin system for external extensions, header negotiation, artifact tagging, required enforcement (-32008), extension params, multi-extension activation |
-| **Agent card** | Public card (12 skills, 6 extensions), extended card (adds debug), streaming + push + extensions capabilities |
 
 ---
 
