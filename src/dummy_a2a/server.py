@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 import httpx
 import uvicorn
-from a2a.server.context import ServerCallContext
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.routes import (
     create_agent_card_routes,
@@ -159,7 +158,6 @@ class DummyA2AServer:
         push_sender = BasePushNotificationSender(
             httpx_client=httpx.AsyncClient(),
             config_store=push_config_store,
-            context=ServerCallContext(),
         )
         handler = DefaultRequestHandler(
             agent_executor=executor,
