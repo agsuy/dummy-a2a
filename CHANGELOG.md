@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.6.4 (2026-06-19)
+
+### Bug Fixes
+
+- Align with a2a-sdk 1.1.0 ([#25](https://github.com/agsuy/dummy-a2a/pull/25),
+  [`afc11cf`](https://github.com/agsuy/dummy-a2a/commit/afc11cf0bc2a070230d46dded01afbe8de6f325f))
+
+- **server**: Align push sender with a2a-sdk 1.0.2
+  ([#25](https://github.com/agsuy/dummy-a2a/pull/25),
+  [`afc11cf`](https://github.com/agsuy/dummy-a2a/commit/afc11cf0bc2a070230d46dded01afbe8de6f325f))
+
+### Chores
+
+- **deps**: Bump a2a-sdk pin to 1.1.0 ([#25](https://github.com/agsuy/dummy-a2a/pull/25),
+  [`afc11cf`](https://github.com/agsuy/dummy-a2a/commit/afc11cf0bc2a070230d46dded01afbe8de6f325f))
+
+
 ## v0.6.3 (2026-04-22)
 
 ### Bug Fixes
